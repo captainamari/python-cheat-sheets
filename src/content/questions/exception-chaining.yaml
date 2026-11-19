@@ -1,0 +1,42 @@
+topicId: exception-chaining
+questions:
+- type: mcq
+  prompt: 希望转换异常并明确保留原因，应如何抛出？
+  choices:
+  - id: a
+    text: return None 代替所有异常
+  - id: b
+    text: 在 finally 中 return 默认值
+  - id: c
+    text: raise ConfigError(...) from exc
+  correct: c
+  explanation: 异常带有类型、消息、回溯和可能的上下文。except 中抛出另一个异常会产生上下文，显式 from 则说明新的异常由哪个错误引起。裸 raise 在处理器中重新抛出当前异常，适合添加日志后继续传播；raise exc 与裸 raise 在回溯呈现上不完全相同，不应为了重抛随意替换。
+  id: exception-chaining-mcq
+  topicId: exception-chaining
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "try:\n    try:\n        int('bad')\n    except ValueError as exc:\n        raise RuntimeError('invalid setting') from exc\nexcept RuntimeError as exc:\n    print(type(exc.__cause__).__name__)\n    print(str(exc))\n"
+  answer: 'ValueError
+
+    invalid setting'
+  explanation: 我在有语义转换的边界捕获特定异常，用 raise 业务异常 from 原异常保留因果。无法恢复就传播，资源清理交给 finally 或 with。测试不仅断言异常类型，还检查 cause 和清理效果，避免失败被返回值掩盖。
+  id: exception-chaining-output
+  topicId: exception-chaining
+- type: debug
+  prompt: 解析出错时调用方为什么没有收到 ValueError？
+  code: "def parse(value):\n    try:\n        return int(value)\n    finally:\n        return 0"
+  rubric:
+  - 使用特定异常和显式因果链表达错误边界
+  - 移除 finally 中的返回并验证异常继续传播及资源释放
+  explanation: 裸 except 会捕获 KeyboardInterrupt 等通常应该传播的控制异常；except Exception 也仍然可能掩盖程序缺陷。finally 中 return 会覆盖原本的返回或正在传播的异常，是非常隐蔽的成功假象。from None 只控制显示的上下文，不代表根因不存在，更不应该被当成修复错误的方式。
+  id: exception-chaining-debug
+  topicId: exception-chaining
+- type: oral
+  prompt: 业务异常转换、原样重抛和资源清理分别应该放在哪里？
+  rubric:
+  - 使用特定异常和显式因果链表达错误边界
+  - 移除 finally 中的返回并验证异常继续传播及资源释放
+  - 我在有语义转换的边界捕获特定异常，用 raise 业务异常 from 原异常保留因果。无法恢复就传播，资源清理交给 finally 或 with。测试不仅断言异常类型，还检查 cause 和清理效果，避免失败被返回值掩盖。
+  explanation: 配置解析层可以把 ValueError 转成 ConfigError，并附上配置键，但保留原始异常作为 cause，排障时才能区分格式问题和业务约束。日志通常在真正负责处理失败的边界记录一次，避免每层重复打印同一回溯。异常信息中应提供必要上下文，不把凭证或完整敏感请求直接塞入消息。
+  id: exception-chaining-oral
+  topicId: exception-chaining

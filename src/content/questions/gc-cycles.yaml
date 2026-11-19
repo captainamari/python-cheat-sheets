@@ -1,0 +1,40 @@
+topicId: gc-cycles
+questions:
+- type: mcq
+  prompt: gc.collect 通常不能解决哪种情况？
+  choices:
+  - id: a
+    text: 不可达容器之间形成引用环
+  - id: b
+    text: 业务全局列表仍强引用全部历史对象
+  - id: c
+    text: 受跟踪且已经不可达的自引用对象
+  correct: b
+  explanation: 两个对象相互持有引用，即便外部已不再能访问它们，单纯观察各自引用计数也可能看不到零。循环垃圾收集器检查受跟踪的容器关系，识别不可达的循环。语言只承诺合适的对象语义，不能把某次 CPython 的回收时点当作所有解释器与构建模式的保证。
+  id: gc-cycles-mcq
+  topicId: gc-cycles
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import gc\nimport weakref\nclass Node:\n    pass\nnode = Node()\nnode.link = node\nref = weakref.ref(node)\ndel node\ngc.collect()\nprint(ref() is None)\n"
+  answer: 'True'
+  explanation: 引用计数和循环检测解决不同问题：前者处理许多引用消失场景，后者识别不可达引用环。资源释放依靠显式生命周期。排查内存增长先区分仍可达对象、回收延迟和分配器保留，不能只盯着 RSS 猜泄漏。
+  id: gc-cycles-output
+  topicId: gc-cycles
+- type: debug
+  prompt: 服务每轮执行 gc.collect 仍增长，应该先检查什么？
+  code: "import gc\nhistory = []\ndef handle(data):\n    history.append(data)\n    gc.collect()"
+  rubric:
+  - 区分不可达循环与仍被业务强引用的对象
+  - 为历史数据设置生命周期或容量并测量持有关系
+  explanation: 不要用 __del__ 替代明确的资源协议。终结时机、解释器退出状态以及对象复活会让清理难以推断。手动 gc.collect 适合有控制的测试和诊断，不宜作为每次请求的默认“释放内存”操作。回收了 Python 对象也不意味着进程常驻内存会立即归还操作系统，分配器还有自己的策略。
+  id: gc-cycles-debug
+  topicId: gc-cycles
+- type: oral
+  prompt: 为什么释放 Python 对象后，操作系统显示的进程内存可能没有立刻下降？
+  rubric:
+  - 区分不可达循环与仍被业务强引用的对象
+  - 为历史数据设置生命周期或容量并测量持有关系
+  - 引用计数和循环检测解决不同问题：前者处理许多引用消失场景，后者识别不可达引用环。资源释放依靠显式生命周期。排查内存增长先区分仍可达对象、回收延迟和分配器保留，不能只盯着 RSS 猜泄漏。
+  explanation: 长期服务遇到内存增长，应先寻找仍被缓存、全局容器、任务或回溯引用的对象。只要业务仍持有强引用，就不是简单调用 gc.collect 能解决的垃圾。定位时可以缩小负载、比较分配快照并检查持有链；强行频繁全量回收可能增加停顿，却没有修复真正的无界缓存。
+  id: gc-cycles-oral
+  topicId: gc-cycles

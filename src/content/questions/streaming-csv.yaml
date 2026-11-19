@@ -1,0 +1,66 @@
+topicId: streaming-csv
+questions:
+- type: mcq
+  prompt: 为什么 CSV 不能只用每行 split(",") 解析？
+  choices:
+  - id: a
+    text: CSV 不允许任何字符串字段
+  - id: b
+    text: 所有 CSV 文件都只有一条记录
+  - id: c
+    text: 字段内允许被引用的逗号和换行
+  correct: c
+  explanation: CSV 的一条逻辑记录不一定等于一个物理文本行，带引号字段可以跨行。split(",") 无法区分分隔逗号和字段内容中的逗号，splitlines 也会破坏跨行字段。csv.reader 按方言和引用规则读取记录，文件以 newline="" 打开可让模块正确处理换行。
+  id: streaming-csv-mcq
+  topicId: streaming-csv
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'import csv
+
+    import io
+
+    text = ''''''name,note
+
+    Alice,"a,b"
+
+    Bob,"line1
+
+    line2"
+
+    ''''''
+
+    rows = list(csv.DictReader(io.StringIO(text, newline='''')))
+
+    print(len(rows))
+
+    print(rows[0][''note''])
+
+    print(rows[1][''note''].splitlines())
+
+    '
+  answer: '2
+
+    a,b
+
+    [''line1'', ''line2'']'
+  explanation: CSV 是有引用规则的记录格式，不是简单分隔字符串。我用标准解析器处理换行和引号，逐条校验并批量消费，同时定义编码、空值与表头契约。测试应包含逗号、双引号、跨行字段和畸形数据。
+  id: streaming-csv-output
+  topicId: streaming-csv
+- type: debug
+  prompt: 导入包含地址逗号的数据后列数错乱，解析方式有什么问题？
+  code: "for line in file:\n    columns = line.rstrip().split(',')\n    save(columns)"
+  rubric:
+  - 说明逻辑记录、物理行与引用字段的区别
+  - 使用 csv 解析并验证表头、字段类型和跨行输入
+  explanation: 流式解析不意味着每个字段都很小，也不意味着下游不会重新缓存全部记录。需要结合文件体积、字段长度和批量写入大小设置限制。向电子表格导出不可信文本时，还要评估以等号等字符开头的公式解释风险；CSV 正确转义只能解决格式语法，不负责应用程序的公式安全语义。
+  id: streaming-csv-debug
+  topicId: streaming-csv
+- type: oral
+  prompt: 大 CSV 导入如何同时控制内存、校验字段并保留失败行信息？
+  rubric:
+  - 说明逻辑记录、物理行与引用字段的区别
+  - 使用 csv 解析并验证表头、字段类型和跨行输入
+  - CSV 是有引用规则的记录格式，不是简单分隔字符串。我用标准解析器处理换行和引号，逐条校验并批量消费，同时定义编码、空值与表头契约。测试应包含逗号、双引号、跨行字段和畸形数据。
+  explanation: 导入测试数据或批量业务记录时，可以迭代 DictReader，逐行校验并分批写入，避免先 list 全部数据。表头应检查缺失、重复和额外列，数值与日期需要明确转换；空字符串究竟表示空值、零还是缺失，不能交给隐式类型转换决定。编码应在文件打开边界明确指定。
+  id: streaming-csv-oral
+  topicId: streaming-csv

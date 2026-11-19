@@ -1,0 +1,44 @@
+topicId: sql-parameters
+questions:
+- type: mcq
+  prompt: 需要按用户选择的字段排序，正确的边界是什么？
+  choices:
+  - id: a
+    text: 表名和关键字都可以直接用值占位符替换
+  - id: b
+    text: 只要先替换单引号就能拼接任意用户输入
+  - id: c
+    text: 字段用白名单映射，过滤值使用参数绑定
+  correct: c
+  explanation: 数据库驱动接收 SQL 模板和独立参数，负责把参数作为相应类型的值处理。即使字符串含引号或类似注释的内容，也不会因为插入模板而改变语句结构。表名、列名和 ASC/DESC 属于语法结构，通常无法用同一套值占位符替代；绑定 "users" 得到的是值，不是标识符解析。
+  id: sql-parameters-mcq
+  topicId: sql-parameters
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import sqlite3\nconnection = sqlite3.connect(':memory:')\ntry:\n    connection.execute('CREATE TABLE users (name TEXT)')\n    connection.executemany('INSERT INTO users VALUES (?)', [('alice',), ('bob',)])\n    value = \"x' OR 1=1 --\"\n    print(connection.execute('SELECT count(*) FROM users WHERE name=?', (value,)).fetchone()[0])\n    print(connection.execute('SELECT count(*) FROM users').fetchone()[0])\nfinally:\n    connection.close()\n"
+  answer: '0
+
+    2'
+  explanation: 我把 SQL 结构固定，把值交给驱动绑定。动态表列和排序只从受控白名单选择，并分别处理空集合和权限条件。测试放入引号、类似 SQL 的字符串以及零个和多个参数，确认它们始终只是数据。
+  id: sql-parameters-output
+  topicId: sql-parameters
+- type: debug
+  prompt: 搜索条件直接拼入 SQL，有什么问题以及如何验证修复？
+  code: 'sql = f"SELECT * FROM users WHERE name = ''{name}''"
+
+    rows = connection.execute(sql).fetchall()'
+  rubric:
+  - 区分 SQL 结构与绑定数据值的边界
+  - 使用参数绑定及标识符白名单，验证特殊输入只作为数据
+  explanation: 手工替换单引号不是可靠的通用防护，也容易遗漏编码或驱动差异。一个单元素元组需要逗号，否则括号中的字符串仍是字符串，驱动可能把它当多个参数。参数类型也要与数据库约束配合，避免把格式不正确的文本交给隐式转换，导致查询结果或索引行为难以解释。
+  id: sql-parameters-debug
+  topicId: sql-parameters
+- type: oral
+  prompt: 动态 IN 列表与动态 ORDER BY 字段，为什么要采用不同构造方式？
+  rubric:
+  - 区分 SQL 结构与绑定数据值的边界
+  - 使用参数绑定及标识符白名单，验证特殊输入只作为数据
+  - 我把 SQL 结构固定，把值交给驱动绑定。动态表列和排序只从受控白名单选择，并分别处理空集合和权限条件。测试放入引号、类似 SQL 的字符串以及零个和多个参数，确认它们始终只是数据。
+  explanation: 搜索接口应让过滤值全部通过占位符传递，排序字段则映射到预先允许的 SQL 片段。需要多项 IN 条件时，可以按参数个数构造占位符列表，再独立传值，空列表则明确定义返回空集或不加条件。不要把参数绑定误认为同时完成授权校验，用户能否查询某条记录仍需业务权限约束。
+  id: sql-parameters-oral
+  topicId: sql-parameters

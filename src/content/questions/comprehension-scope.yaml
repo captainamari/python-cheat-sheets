@@ -1,0 +1,56 @@
+topicId: comprehension-scope
+questions:
+- type: mcq
+  prompt: 下列哪个描述符合生成器表达式的求值方式？
+  choices:
+  - id: a
+    text: 创建时已经计算并保存全部结果
+  - id: b
+    text: 转换表达式通常在消费时执行
+  - id: c
+    text: 所有外部变量都在创建时自动冻结
+  correct: b
+  explanation: 列表推导式把筛选和转换组合成一个表达式，循环变量有自己的作用域。生成器表达式保存可继续执行的计算，而不是提前保存每个结果；最外层可迭代对象会在创建表达式时求值，后续循环与转换通常发生在消费时。因此“生成器表达式所有事情都延迟”也不是完整描述。
+  id: comprehension-scope-mcq
+  topicId: comprehension-scope
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'factor = 2
+
+    values = [n * factor for n in range(3)]
+
+    later = (n * factor for n in range(3))
+
+    factor = 3
+
+    print(values)
+
+    print(list(later))
+
+    '
+  answer: '[0, 2, 4]
+
+    [0, 3, 6]'
+  explanation: 列表推导式立即收集，生成器表达式按需计算；二者都不能自动解决闭包晚绑定。选择时先看是否需要快照、重复遍历和控制内存，再检查求值时点。复杂流程宁可写明确循环，便于观察失败位置和清理资源。
+  id: comprehension-scope-output
+  topicId: comprehension-scope
+- type: debug
+  prompt: 希望生成三个返回不同整数的函数，为什么结果都一样？
+  code: 'funcs = [lambda: n for n in range(3)]
+
+    print([f() for f in funcs])'
+  rubric:
+  - 区分立即收集、按需计算与最外层 iterable 的求值
+  - 通过默认参数或工厂冻结闭包值并验证每个函数
+  explanation: 推导式内部创建 lambda 也有晚绑定：函数调用时才读取对应变量，不能把独立作用域误解为每个函数都冻结了一份值。若需要冻结当次值，可用默认参数或工厂函数。生成器读取外部可变状态时，消费前的修改也可能影响结果；测试必须覆盖创建和消费之间存在操作的情况。
+  id: comprehension-scope-debug
+  topicId: comprehension-scope
+- type: oral
+  prompt: 什么时候选择列表推导式，什么时候使用生成器表达式？
+  rubric:
+  - 区分立即收集、按需计算与最外层 iterable 的求值
+  - 通过默认参数或工厂冻结闭包值并验证每个函数
+  - 列表推导式立即收集，生成器表达式按需计算；二者都不能自动解决闭包晚绑定。选择时先看是否需要快照、重复遍历和控制内存，再检查求值时点。复杂流程宁可写明确循环，便于观察失败位置和清理资源。
+  explanation: 读取大文件并聚合统计时，生成器表达式能避免额外结果列表，但下游如果立即 list()，整体仍会保存全部结果。需要多次遍历、随机访问或稳定快照时，显式列表往往更清楚。推导式适合简单变换；复杂异常处理、多个副作用和资源生命周期应回到普通循环中表达。
+  id: comprehension-scope-oral
+  topicId: comprehension-scope

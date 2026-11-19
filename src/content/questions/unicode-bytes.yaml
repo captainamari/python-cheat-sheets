@@ -1,0 +1,58 @@
+topicId: unicode-bytes
+questions:
+- type: mcq
+  prompt: UTF-8 文本编码为 bytes 后，哪项成立？
+  choices:
+  - id: a
+    text: 字节长度可能大于文本码点数量
+  - id: b
+    text: 每个 Unicode 字符固定占一个字节
+  - id: c
+    text: str(raw) 总是等价于 UTF-8 解码
+  correct: a
+  explanation: 字符和字节不是一一对应关系。一个中文字符在 UTF-8 中通常占多个字节，所以 len(text) 与 len(text.encode()) 回答的是不同问题。str 的元素是 Unicode 码点组成的字符串，bytes 的索引结果是整数。看起来相同的文字也可能有不同码点组合，文本归一化要根据业务需要显式进行。
+  id: unicode-bytes-mcq
+  topicId: unicode-bytes
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'text = ''中A''
+
+    raw = text.encode(''utf-8'')
+
+    print(len(text), len(raw))
+
+    print(raw.decode(''utf-8'') == text)
+
+    print(type(raw[0]).__name__)
+
+    '
+  answer: '2 4
+
+    True
+
+    int'
+  explanation: 我把编码放在输入输出边界，内部处理 Unicode 文本。长度必须说明单位；UTF-8 字节长度与码点数量不同。遇到乱码先检查编码与重复转换，分块传输使用增量解码，避免掩盖损坏数据。
+  id: unicode-bytes-output
+  topicId: unicode-bytes
+- type: debug
+  prompt: 服务端要求 UTF-8 文本，为什么这样处理收到的字节不正确？
+  code: 'raw = ''你好''.encode(''utf-8'')
+
+    text = str(raw)
+
+    print(text)'
+  rubric:
+  - 说明编码与解码的方向以及长度单位
+  - 使用明确的 decode 并验证中文、非法字节和跨块字符
+  explanation: 用 errors="ignore" 消除异常可能静默丢失信息，特别是标识符或签名输入。解码错误应先核实真实编码和数据是否截断，再决定拒绝、替换还是保留原始字节。对 bytes 调用 str 得到的通常是字节对象的表示形式，例如带 b 前缀的文本，并不等于按 UTF-8 解码。
+  id: unicode-bytes-debug
+  topicId: unicode-bytes
+- type: oral
+  prompt: 文本流按网络分块读取时，如何处理一个字符被拆到两个块里的情况？
+  rubric:
+  - 说明编码与解码的方向以及长度单位
+  - 使用明确的 decode 并验证中文、非法字节和跨块字符
+  - 我把编码放在输入输出边界，内部处理 Unicode 文本。长度必须说明单位；UTF-8 字节长度与码点数量不同。遇到乱码先检查编码与重复转换，分块传输使用增量解码，避免掩盖损坏数据。
+  explanation: 应用内部优先传递 str，读取文件时指定 encoding，发送协议时在边界编码一次。上传大小限制应以传输字节数计算，而用户输入的字符限制必须先定义按码点还是可见字符计数。对于分块读取的 UTF-8 流，一个字符可能跨块，不能逐块独立解码，应使用增量解码器或文本流。
+  id: unicode-bytes-oral
+  topicId: unicode-bytes

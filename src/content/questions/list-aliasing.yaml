@@ -1,0 +1,58 @@
+topicId: list-aliasing
+questions:
+- type: mcq
+  prompt: 哪种写法为每一行创建独立列表？
+  choices:
+  - id: a
+    text: '[[0] * 2] * 3'
+  - id: b
+    text: '[[0] * 2 for _ in range(3)]'
+  - id: c
+    text: '[row for _ in range(3)]'
+  correct: b
+  explanation: 执行 [[0] * 2] * 3 时，先创建一行，再把对这一行的引用放进外层列表三次。修改 grid[0][0] 实际修改共享行，所以其他位置看到相同变化。内部的整数不可变并不能消除共享行问题：被修改的是列表中的引用槽位，而不是整数对象本身。
+  id: list-aliasing-mcq
+  topicId: list-aliasing
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'bad = [[0] * 2] * 2
+
+    good = [[0] * 2 for _ in range(2)]
+
+    bad[0][0] = 9
+
+    good[0][0] = 9
+
+    print(bad)
+
+    print(good)
+
+    '
+  answer: '[[9, 0], [9, 0]]
+
+    [[9, 0], [0, 0]]'
+  explanation: 二维列表联动通常来自重复引用。乘法复制引用，逐行执行构造才创建独立行。我会修改一个单元格，并断言其他行不变及各行身份不同。对于本来需要共享的配置模板，则明确记录共享语义，不盲目复制。
+  id: list-aliasing-output
+  topicId: list-aliasing
+- type: debug
+  prompt: 每个用例应该有独立日志列表，下面为什么出现交叉污染？
+  code: 'logs = [[]] * 3
+
+    logs[0].append(''case-0'')
+
+    print(logs)'
+  rubric:
+  - 解释列表乘法重复的是行引用
+  - 逐次创建内部列表并测试修改不会传播到其他行
+  explanation: 浅拷贝外层只能复制外层引用，不能解决已共享的行。深拷贝通常会保留原有别名关系：如果原来三处引用同一行，拷贝后的三处仍可能引用同一条新行。需要各行独立时，应从正确的生成规则重新构造，不能把 deepcopy 视作所有共享结构的修复按钮。
+  id: list-aliasing-debug
+  topicId: list-aliasing
+- type: oral
+  prompt: 为什么只拷贝外层列表甚至深拷贝都未必能修复错误的矩阵构造？
+  rubric:
+  - 解释列表乘法重复的是行引用
+  - 逐次创建内部列表并测试修改不会传播到其他行
+  - 二维列表联动通常来自重复引用。乘法复制引用，逐行执行构造才创建独立行。我会修改一个单元格，并断言其他行不变及各行身份不同。对于本来需要共享的配置模板，则明确记录共享语义，不盲目复制。
+  explanation: 初始化测试结果矩阵、棋盘或批次指标时，可以使用 [[0] * width for _ in range(height)]，让内层构造每轮执行。列表推导式本身也不是深拷贝保证，如果写成 [template for _ in range(n)] 仍会共享 template。必须观察构造语句的位置和它返回的对象是否新建。
+  id: list-aliasing-oral
+  topicId: list-aliasing

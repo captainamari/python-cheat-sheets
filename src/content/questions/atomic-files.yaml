@@ -1,0 +1,42 @@
+topicId: atomic-files
+questions:
+- type: mcq
+  prompt: 临时文件写好后原子替换，主要直接改善什么？
+  choices:
+  - id: a
+    text: 自动保证所有文件系统断电后都不丢数据
+  - id: b
+    text: 避免读者看到目标路径的半写入内容
+  - id: c
+    text: 自动合并两个并发写者的修改
+  correct: b
+  explanation: 直接以写模式打开目标文件通常会先截断，进程中途失败就可能留下不完整文件。写到另一个临时路径，成功关闭后用 os.replace 替换，可以让路径切换成为一个原子操作；在支持的文件系统上，读者看到旧文件或新文件，而不是中间写到一半的混合状态。
+  id: atomic-files-mcq
+  topicId: atomic-files
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import os\nfrom pathlib import Path\nfrom tempfile import TemporaryDirectory\nwith TemporaryDirectory() as directory:\n    target = Path(directory) / 'state.txt'\n    staging = Path(directory) / 'state.tmp'\n    target.write_text('old', encoding='utf-8')\n    staging.write_text('new', encoding='utf-8')\n    os.replace(staging, target)\n    print(target.read_text(encoding='utf-8'))\n    print(staging.exists())\n"
+  answer: 'new
+
+    False'
+  explanation: 我先写完整临时文件，再在同一文件系统原子替换，保证读者不见半成品。断电持久性、权限保留和并发写冲突分别设计。测试覆盖写入失败、校验失败、替换失败及旧文件仍然可读，而非只测成功路径。
+  id: atomic-files-output
+  topicId: atomic-files
+- type: debug
+  prompt: 进程在写入中途退出，为什么旧配置也无法恢复读取？
+  code: "with open('settings.json', 'w', encoding='utf-8') as file:\n    file.write(first_part)\n    file.write(second_part)"
+  rubric:
+  - 区分原子可见性、持久性与并发写协调
+  - 使用同目录临时文件并验证失败时旧文件保持可读
+  explanation: 原子替换不意味着断电后必然持久保存。对持久性有要求时，应刷出 Python 缓冲、对文件 fsync，并按平台和文件系统语义处理目录同步。两个写者各自替换同一路径仍可能最后写入覆盖前者；避免丢失更新需要锁、版本检查或其他协调机制，不能只靠 replace。
+  id: atomic-files-debug
+  topicId: atomic-files
+- type: oral
+  prompt: 如果配置必须抵抗断电和并发写入，仅用 os.replace 还缺哪些保证？
+  rubric:
+  - 区分原子可见性、持久性与并发写协调
+  - 使用同目录临时文件并验证失败时旧文件保持可读
+  - 我先写完整临时文件，再在同一文件系统原子替换，保证读者不见半成品。断电持久性、权限保留和并发写冲突分别设计。测试覆盖写入失败、校验失败、替换失败及旧文件仍然可读，而非只测成功路径。
+  explanation: 配置快照和导出结果适合采用该流程，临时文件放在目标同一目录以降低跨文件系统替换失败的风险。所有校验通过后再替换，并在失败时清理临时文件。权限、属主和其他元数据也要按需求处理，因为新文件并不会无条件继承目标文件的所有属性。
+  id: atomic-files-oral
+  topicId: atomic-files

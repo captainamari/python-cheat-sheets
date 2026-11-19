@@ -1,0 +1,42 @@
+topicId: hash-contract
+questions:
+- type: mcq
+  prompt: 关于字典键的哈希约束，哪项正确？
+  choices:
+  - id: a
+    text: 相同哈希意味着对象身份相同
+  - id: b
+    text: 任意元组都可以作为字典键
+  - id: c
+    text: 相等的键必须有相同哈希
+  correct: c
+  explanation: 哈希表不会逐个比较所有键。它依据 hash(key) 定位候选区域，再判断已有键是否相等。如果两个对象相等却返回不同哈希，查找可能到达不同位置，破坏同一个逻辑键只保留一份的约定。碰撞则是正常情况，类型必须仍能用相等关系区分不同键，不能把哈希当作唯一标识。
+  id: hash-contract-mcq
+  topicId: hash-contract
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from dataclasses import dataclass\n@dataclass(frozen=True)\nclass Key:\n    name: str\nx, y = Key('task'), Key('task')\nprint(x == y, hash(x) == hash(y))\nprint({x: 7}[y])\n"
+  answer: 'True True
+
+    7'
+  explanation: 哈希负责快速定位，相等负责确认身份在业务上的一致性。相等必须同哈希，同哈希未必相等。键的比较状态要稳定；我更愿意选不可变业务键，并测试相同业务值的两个实例能否访问同一条记录。
+  id: hash-contract-output
+  topicId: hash-contract
+- type: debug
+  prompt: 这个类放入字典后再修改 name，为什么可能找不到原条目？
+  code: "class Key:\n    def __init__(self, name): self.name = name\n    def __hash__(self): return hash(self.name)\n    def __eq__(self, other): return isinstance(other, Key) and self.name == other.name"
+  rubric:
+  - 说明相等必须同哈希且键状态需要稳定
+  - 改用不可变业务键并验证等值实例查找同一条目
+  explanation: 类自定义 __eq__ 却没有明确提供合适的 __hash__，通常会成为不可哈希对象。这是避免不一致的一种保护，不能只补一个恒定或随字段变化的哈希就声称完成设计。恒定哈希虽然可满足相等约束，却可能让大量键冲突、退化为频繁比较；可变哈希则会使已有条目难以找到。
+  id: hash-contract-debug
+  topicId: hash-contract
+- type: oral
+  prompt: 设计自定义字典键时，如何处理相等、碰撞和对象可变性？
+  rubric:
+  - 说明相等必须同哈希且键状态需要稳定
+  - 改用不可变业务键并验证等值实例查找同一条目
+  - 哈希负责快速定位，相等负责确认身份在业务上的一致性。相等必须同哈希，同哈希未必相等。键的比较状态要稳定；我更愿意选不可变业务键，并测试相同业务值的两个实例能否访问同一条记录。
+  explanation: 业务键可以使用不可变字符串、元组或冻结的数据类。元组能否哈希取决于所有元素：包含列表的元组仍然不可哈希。若实体的字段会在入库后修改，建议把稳定 ID 作为字典键，实体放在值里，避免让可编辑字段参与哈希。跨进程持久化指纹应用确定性摘要算法，不使用内置 hash。
+  id: hash-contract-oral
+  topicId: hash-contract

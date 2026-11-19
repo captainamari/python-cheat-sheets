@@ -1,9 +1,29 @@
 title: 测试开发
 description: 从可变状态与隔离出发，理解测试替身和失败路径。
 topics:
-  - object-sharing
-  - mutable-defaults
-  - shallow-copy
-  - context-managers
-  - mock-boundaries
-  - sqlite-transactions
+- object-sharing
+- mutable-defaults
+- list-aliasing
+- shallow-copy
+- identity-equality
+- context-managers
+- exception-chaining
+- fixture-cleanup
+- mock-boundaries
+- mock-autospec
+- mock-side-effects
+- async-mock
+- subtest-cases
+- deterministic-time
+- log-assertions
+- logging-hierarchy
+- import-cache
+- thread-locks
+- asyncio-cancellation
+- asyncio-timeouts
+- sql-parameters
+- sqlite-transactions
+- idempotency-keys
+- atomic-files
+- json-boundaries
+- datetime-zones

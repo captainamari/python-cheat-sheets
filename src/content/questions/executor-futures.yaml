@@ -1,0 +1,42 @@
+topicId: executor-futures
+questions:
+- type: mcq
+  prompt: 对已经运行的线程任务调用 Future.cancel，通常会怎样？
+  choices:
+  - id: a
+    text: 无法取消并返回 False
+  - id: b
+    text: 立即强制中断线程中的任意代码
+  - id: c
+    text: 把工作回滚到提交之前的状态
+  correct: a
+  explanation: submit 返回 Future，工作函数的返回值或异常被保存在其中。result 等待完成并返回值或重新抛出异常；等待超时只让调用者结束本次等待，不等于工作停止。cancel 对已在执行的线程任务通常返回 False，线程函数需要自己的停止事件、底层超时或其他合作机制。
+  id: executor-futures-mcq
+  topicId: executor-futures
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from concurrent.futures import ThreadPoolExecutor\nfrom threading import Event\nrelease = Event()\nstarted = Event()\ndef work():\n    started.set()\n    release.wait()\n    return 7\nwith ThreadPoolExecutor(max_workers=1) as pool:\n    future = pool.submit(work)\n    started.wait()\n    print(future.cancel())\n    release.set()\n    print(future.result())\n"
+  answer: 'False
+
+    7'
+  explanation: Future 的等待超时、取消和真实工作停止是三个概念。我会给底层操作设置截止与停止协议，取回每个任务的异常，并避免同池嵌套同步等待。容量设计同时考虑 worker 数量与排队任务数量。
+  id: executor-futures-output
+  topicId: executor-futures
+- type: debug
+  prompt: 只有一个 worker 时，这种嵌套等待为什么可能死锁？
+  code: "def outer(pool):\n    return pool.submit(lambda: 1).result()\n# outer 本身也在同一个 max_workers=1 的池中运行"
+  rubric:
+  - 区分 Future 等待、取消请求与工作真实停止
+  - 避免同池嵌套阻塞等待，并为底层工作设计停止与超时
+  explanation: 在单 worker 的任务里再提交工作并同步等待同一个池，可能死锁：唯一线程等待一个没有线程运行的任务。退出 with ThreadPoolExecutor 时通常会等待任务结束，所以捕获 result 超时并不保证整个上下文马上退出。不要通过吞异常或遗弃 Future 把后台副作用变成无法追踪的工作。
+  id: executor-futures-debug
+  topicId: executor-futures
+- type: oral
+  prompt: 为什么捕获 Future 的 TimeoutError 后，退出线程池上下文仍可能阻塞？
+  rubric:
+  - 区分 Future 等待、取消请求与工作真实停止
+  - 避免同池嵌套阻塞等待，并为底层工作设计停止与超时
+  - Future 的等待超时、取消和真实工作停止是三个概念。我会给底层操作设置截止与停止协议，取回每个任务的异常，并避免同池嵌套同步等待。容量设计同时考虑 worker 数量与排队任务数量。
+  explanation: 批量任务可以用 as_completed 按完成先后处理，但需要保留 Future 到业务 ID 的映射。若使用 map，结果通常按输入顺序产出，前面慢任务可能挡住后面已完成结果。提交速率也要有限制，max_workers 限制执行线程数，不代表所有待提交任务和参数不会在内存中堆积。
+  id: executor-futures-oral
+  topicId: executor-futures

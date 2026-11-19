@@ -4,6 +4,8 @@ export type Answer =
   { kind: 'objective'; correct: boolean; response: string } | { kind: 'self'; rating: Rating };
 export type Session = {
   version: 1;
+  id?: string;
+  generation?: string;
   scope: string;
   questionIds: string[];
   index: number;
@@ -27,6 +29,7 @@ export function createSession(
 ): Session {
   return {
     version: 1,
+    id: crypto.randomUUID(),
     scope,
     questionIds: shuffle(questions, random)
       .slice(0, count)
@@ -85,6 +88,7 @@ export function restoreSession(
   raw: string | null,
   questions: Question[],
   scope: string,
+  generation = 'initial',
 ): Session | null {
   if (!raw) return null;
   try {
@@ -92,6 +96,8 @@ export function restoreSession(
     const byId = new Map(questions.map((q) => [q.id, q]));
     if (
       s.version !== 1 ||
+      (s.generation ?? 'initial') !== generation ||
+      (s.id !== undefined && (typeof s.id !== 'string' || !s.id.length || s.id.length > 80)) ||
       s.scope !== scope ||
       !Array.isArray(s.questionIds) ||
       !s.questionIds.length ||

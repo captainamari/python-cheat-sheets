@@ -1,11 +1,35 @@
 title: Python 核心复习
 description: 从对象与函数出发，建立解释代码行为的基础。
 topics:
-  - object-sharing
-  - mutable-defaults
-  - shallow-copy
-  - closure-binding
-  - decorators
-  - generators
-  - context-managers
-  - gil
+- object-sharing
+- identity-equality
+- truthiness-sentinel
+- mutable-defaults
+- list-aliasing
+- shallow-copy
+- hash-contract
+- dict-order
+- unicode-bytes
+- stable-sorting
+- closure-binding
+- comprehension-scope
+- name-resolution
+- argument-binding
+- decorators
+- cache-lifecycle
+- generators
+- iterator-exhaustion
+- context-managers
+- exception-chaining
+- descriptor-precedence
+- special-methods
+- mro-super
+- dataclass-fields
+- slots-layout
+- import-cache
+- main-entry
+- typing-protocol
+- gil
+- gc-cycles
+- weak-references
+- tracemalloc

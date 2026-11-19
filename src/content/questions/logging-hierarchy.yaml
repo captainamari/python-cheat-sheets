@@ -1,0 +1,70 @@
+topicId: logging-hierarchy
+questions:
+- type: mcq
+  prompt: 子记录器和祖先都挂输出处理器且允许传播，可能出现什么？
+  choices:
+  - id: a
+    text: 所有处理器会自动合并成一个
+  - id: b
+    text: 祖先记录器级别一定会再次拦截传播记录
+  - id: c
+    text: 同一条记录被输出多次
+  correct: c
+  explanation: logging.getLogger(name) 返回具名记录器，点分名称组成层级。记录器先决定是否生成记录，处理器再决定是否输出；传播会把记录交给祖先的处理器，而不是重新按每个祖先记录器的级别过滤。因此只修改某个 logger 的 level，未必能解释最终是否可见，还要检查 handler 和 propagate。
+  id: logging-hierarchy-mcq
+  topicId: logging-hierarchy
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'import logging
+
+    import io
+
+    stream = io.StringIO()
+
+    logger = logging.getLogger(''demo.s2'')
+
+    logger.handlers.clear()
+
+    logger.propagate = False
+
+    logger.setLevel(logging.INFO)
+
+    handler = logging.StreamHandler(stream)
+
+    handler.setFormatter(logging.Formatter(''%(levelname)s:%(message)s''))
+
+    logger.addHandler(handler)
+
+    logger.debug(''hidden'')
+
+    logger.info(''count=%s'', 2)
+
+    print(stream.getvalue().strip())
+
+    logger.removeHandler(handler)
+
+    handler.close()
+
+    '
+  answer: INFO:count=2
+  explanation: 我沿 logger、handler、filter 和传播路径检查日志。应用统一配置输出，库仅发出事件；重复行先检查重复 handler 与祖先传播。测试会捕获日志级别和关键字段，验证失败分支的上下文，而不把整段易变文本锁死。
+  id: logging-hierarchy-output
+  topicId: logging-hierarchy
+- type: debug
+  prompt: 每次初始化后日志多打印一行，应该怎样修复？
+  code: "import logging\ndef init():\n    logger = logging.getLogger('app')\n    logger.addHandler(logging.StreamHandler())\n    return logger"
+  rubric:
+  - 区分记录器过滤、处理器过滤与祖先传播
+  - 让配置生命周期可控，避免重复追加处理器并测试输出次数
+  explanation: 反复调用初始化函数给同一 logger 追加 handler，会让同一条消息出现多次；清理重复输出应检查配置生命周期。日志格式化用参数传递可以延迟字符串插值，但参数表达式本身仍先求值，昂贵函数不会自动延迟。也不能把日志输出成功作为业务事务提交成功的替代证据。
+  id: logging-hierarchy-debug
+  topicId: logging-hierarchy
+- type: oral
+  prompt: 日志排障时为什么只看 logger.level 不足以解释输出结果？
+  rubric:
+  - 区分记录器过滤、处理器过滤与祖先传播
+  - 让配置生命周期可控，避免重复追加处理器并测试输出次数
+  - 我沿 logger、handler、filter 和传播路径检查日志。应用统一配置输出，库仅发出事件；重复行先检查重复 handler 与祖先传播。测试会捕获日志级别和关键字段，验证失败分支的上下文，而不把整段易变文本锁死。
+  explanation: 业务模块用 getLogger(__name__)，应用入口统一配置格式、目标和级别，避免每个模块导入时都 basicConfig 或追加处理器。一个请求跨模块时，把关联 ID 作为结构化字段传递，日志才能按请求串联。处理异常时用 logger.exception 保留回溯，但应该由负责处理边界的一层记录，减少重复噪声。
+  id: logging-hierarchy-oral
+  topicId: logging-hierarchy

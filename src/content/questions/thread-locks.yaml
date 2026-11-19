@@ -1,0 +1,40 @@
+topicId: thread-locks
+questions:
+- type: mcq
+  prompt: 库存检查后扣减，锁通常应该覆盖哪些步骤？
+  choices:
+  - id: a
+    text: 只覆盖最后的赋值语句
+  - id: b
+    text: 读取、检查与修改的完整不变量
+  - id: c
+    text: 不需要锁，因为 Python 总有 GIL
+  correct: b
+  explanation: 两个线程可能分别读取同一个旧值，各自计算后写回，导致一个更新覆盖另一个。GIL 的存在并不等价于整段业务逻辑不可交错，调用扩展或 I/O 还可能释放它；不同构建与版本也会改变执行条件。正确性应建立在 Lock 等同步机制和明确的状态约束上。
+  id: thread-locks-mcq
+  topicId: thread-locks
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from concurrent.futures import ThreadPoolExecutor\nfrom threading import Lock\nlock = Lock()\nstate = {'count': 0}\ndef increment(_):\n    with lock:\n        state['count'] += 1\nwith ThreadPoolExecutor(max_workers=4) as pool:\n    list(pool.map(increment, range(100)))\nprint(state['count'])\n"
+  answer: '100'
+  explanation: 我把锁看作保护一组必须一起成立的状态变化。GIL 不是事务，检查和修改要在同一同步边界内完成。验证时明确线程、进程和数据库的边界，用可控交错测试竞争，同时保持锁内工作尽量短。
+  id: thread-locks-output
+  topicId: thread-locks
+- type: debug
+  prompt: 下面即使锁住减法，为什么还可能超卖？
+  code: "if stock > 0:\n    with lock:\n        stock -= 1"
+  rubric:
+  - 说明多步业务不变量不能依赖 GIL 保证
+  - 把检查与修改放进同一同步边界并构造竞争测试
+  explanation: 只给写入加锁而让检查在锁外，仍然可能基于过期状态作决定。线程锁也只协调使用同一把锁的参与者，不能保护另一个进程或另一台服务器的库存。测试不应只靠大量循环碰运气，可以用事件或屏障制造特定交错，再断言总量与其他业务不变量。
+  id: thread-locks-debug
+  topicId: thread-locks
+- type: oral
+  prompt: 线程锁能保护数据库里的跨进程库存吗，为什么？
+  rubric:
+  - 说明多步业务不变量不能依赖 GIL 保证
+  - 把检查与修改放进同一同步边界并构造竞争测试
+  - 我把锁看作保护一组必须一起成立的状态变化。GIL 不是事务，检查和修改要在同一同步边界内完成。验证时明确线程、进程和数据库的边界，用可控交错测试竞争，同时保持锁内工作尽量短。
+  explanation: 库存扣减应把读取库存、检查足够与扣减放在同一临界区，或者交给数据库条件更新和事务。锁内只执行必要操作，避免等待网络或调用未知回调，降低死锁和长时间阻塞风险。多个锁必须约定一致获取顺序；如果代码会在同一线程再次获取同一锁，要明确选择可重入锁还是重构调用。
+  id: thread-locks-oral
+  topicId: thread-locks

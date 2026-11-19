@@ -1,0 +1,40 @@
+topicId: sqlite-savepoints
+questions:
+- type: mcq
+  prompt: 已有外层事务时 RELEASE 内层保存点意味着什么？
+  choices:
+  - id: a
+    text: 移除保存点，修改仍受外层事务控制
+  - id: b
+    text: 无条件把所有修改独立提交并永久保留
+  - id: c
+    text: 只撤销保存点之前的全部操作
+  correct: a
+  explanation: 事务可以包含命名保存点。ROLLBACK TO 撤销保存点之后的修改，并保留该保存点以便后续使用或释放；RELEASE 移除对应保存点边界。在已有外层事务时，释放内层保存点并不会使它的修改独立持久化，外层 ROLLBACK 仍可以撤销整个事务中的修改。
+  id: sqlite-savepoints-mcq
+  topicId: sqlite-savepoints
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import sqlite3\nconnection = sqlite3.connect(':memory:', autocommit=True)\ntry:\n    connection.execute('CREATE TABLE items (value INTEGER)')\n    connection.execute('BEGIN')\n    connection.execute('INSERT INTO items VALUES (1)')\n    connection.execute('SAVEPOINT part')\n    connection.execute('INSERT INTO items VALUES (2)')\n    connection.execute('ROLLBACK TO part')\n    connection.execute('RELEASE part')\n    connection.execute('COMMIT')\n    print(connection.execute('SELECT value FROM items ORDER BY value').fetchall())\nfinally:\n    connection.close()\n"
+  answer: '[(1,)]'
+  explanation: 保存点提供局部撤销，外层事务决定最终持久化。我先定义部分成功是否合法，再设计命名、回滚与释放。测试不仅检查失败行消失，也验证释放保存点后外层回滚仍然撤销全部操作，并明确驱动事务模式。
+  id: sqlite-savepoints-output
+  topicId: sqlite-savepoints
+- type: debug
+  prompt: 开发者把两个 with 当嵌套事务，这种假设有什么风险？
+  code: "with connection:\n    connection.execute('INSERT INTO items VALUES (1)')\n    with connection:\n        connection.execute('INSERT INTO items VALUES (2)')\n    raise ValueError('outer failure')"
+  rubric:
+  - 区分保存点释放与外层事务提交
+  - 明确事务模式，使用 SAVEPOINT 并测试外层回滚边界
+  explanation: Python 连接上下文管理器不能简单当作任意层级的嵌套事务。嵌套 with connection 的行为受驱动事务设置影响，可能提前提交外层操作。本文显式使用 autocommit=True 并发送 BEGIN/COMMIT/ROLLBACK 语句管理 SQLite 事务，避免把不同模式下的 commit 方法行为混在一起。
+  id: sqlite-savepoints-debug
+  topicId: sqlite-savepoints
+- type: oral
+  prompt: 批量导入允许部分成功时，如何用保存点记录失败而不破坏外层事务？
+  rubric:
+  - 区分保存点释放与外层事务提交
+  - 明确事务模式，使用 SAVEPOINT 并测试外层回滚边界
+  - 保存点提供局部撤销，外层事务决定最终持久化。我先定义部分成功是否合法，再设计命名、回滚与释放。测试不仅检查失败行消失，也验证释放保存点后外层回滚仍然撤销全部操作，并明确驱动事务模式。
+  explanation: 批量导入希望保留合法行、跳过单行约束失败时，可以为每个局部操作设保存点，并在失败时回滚到该点，然后收集失败信息。必须先明确业务是否允许部分成功；账务转移等要求整体一致性的操作不应随意拆成部分提交。保存点名称来自程序控制，数据值仍使用绑定参数。
+  id: sqlite-savepoints-oral
+  topicId: sqlite-savepoints

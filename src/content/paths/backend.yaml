@@ -1,9 +1,30 @@
 title: 后端与 AI 服务
 description: 关注资源释放、异步任务、请求阻塞与数据一致性。
 topics:
-  - context-managers
-  - gil
-  - asyncio-cancellation
-  - asgi-blocking
-  - sqlite-transactions
-  - mock-boundaries
+- context-managers
+- exception-chaining
+- dataclass-fields
+- typing-protocol
+- logging-hierarchy
+- gil
+- thread-locks
+- executor-futures
+- asyncio-cancellation
+- taskgroup-failures
+- gather-errors
+- asyncio-timeouts
+- contextvars
+- asgi-blocking
+- asyncio-semaphore
+- bounded-queue
+- sql-parameters
+- sqlite-transactions
+- sqlite-savepoints
+- idempotency-keys
+- decimal-rounding
+- json-boundaries
+- datetime-zones
+- atomic-files
+- streaming-csv
+- cache-lifecycle
+- mock-boundaries

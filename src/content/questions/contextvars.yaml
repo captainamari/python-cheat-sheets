@@ -1,0 +1,44 @@
+topicId: contextvars
+questions:
+- type: mcq
+  prompt: ContextVar 保存列表时，哪项需要注意？
+  choices:
+  - id: a
+    text: 不同上下文仍可能绑定同一个可变列表
+  - id: b
+    text: 每次 get 都会自动返回深拷贝
+  - id: c
+    text: 使用后永远不需要恢复原绑定
+  correct: a
+  explanation: 一个事件循环线程里可以交错运行多个任务，threading.local 无法按任务区分请求。ContextVar 将值绑定到当前上下文，set 返回 token，reset 可以恢复之前的绑定。任务创建时通常捕获当前上下文，之后父任务重新设置变量，不会简单覆盖已经创建的子任务绑定。
+  id: contextvars-mcq
+  topicId: contextvars
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import asyncio\nfrom contextvars import ContextVar\nrequest = ContextVar('request', default='none')\nasync def read(): return request.get()\nasync def main():\n    token = request.set('first')\n    try:\n        task = asyncio.create_task(read())\n        request.set('second')\n        print(await task)\n        print(request.get())\n    finally:\n        request.reset(token)\n    print(request.get())\nasyncio.run(main())\n"
+  answer: 'first
+
+    second
+
+    none'
+  explanation: ContextVar 适合异步调用链的局部上下文。入口设置、finally 恢复，新任务继承创建时的绑定；共享可变值仍需避免。我会测试两个并发请求的日志 ID 不串，并检查跨线程边界的传播规则。
+  id: contextvars-output
+  topicId: contextvars
+- type: debug
+  prompt: 请求标签串到一起，默认值设计有什么问题？
+  code: "from contextvars import ContextVar\ntags = ContextVar('tags', default=[])\ndef add_tag(value):\n    tags.get().append(value)"
+  rubric:
+  - 区分上下文绑定隔离与对象深拷贝
+  - 每个入口设置独立值并在 finally 中用 token 恢复
+  explanation: ContextVar 中放一个默认列表并在多任务里 append，仍可能修改共享的列表对象。隔离的是变量到对象的绑定，不是自动深拷贝对象。优先保存不可变值或在入口设置新容器。本文用 token.reset 模式兼容 3.12–3.14，不依赖较新版本才支持的 token 上下文管理用法。
+  id: contextvars-debug
+  topicId: contextvars
+- type: oral
+  prompt: 为什么线程局部变量不适合直接充当单线程异步服务的请求上下文？
+  rubric:
+  - 区分上下文绑定隔离与对象深拷贝
+  - 每个入口设置独立值并在 finally 中用 token 恢复
+  - ContextVar 适合异步调用链的局部上下文。入口设置、finally 恢复，新任务继承创建时的绑定；共享可变值仍需避免。我会测试两个并发请求的日志 ID 不串，并检查跨线程边界的传播规则。
+  explanation: 日志关联 ID、租户标识等适合在请求入口设置、在 finally 中恢复。核心业务参数仍应显式传递，避免所有依赖都隐藏在上下文里。跨线程或执行器边界需要确认上下文如何传播；asyncio.to_thread 会传播当前上下文，但不能把所有线程池提交方式都视为拥有相同保证。
+  id: contextvars-oral
+  topicId: contextvars

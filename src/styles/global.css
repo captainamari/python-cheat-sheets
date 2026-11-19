@@ -1600,3 +1600,71 @@ progress::-moz-progress-bar {
     transition: none !important;
   }
 }
+
+/* S2 review and backup use the same quiet, paper-like surface as the reader. */
+.bookmark-button {
+  margin-bottom: 1.5rem;
+}
+.bookmark-button[aria-pressed='true'],
+.review-filters button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: currentColor;
+}
+.review-filters {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 2rem 0 1rem;
+}
+.review-filters button {
+  min-height: 44px;
+}
+.review-row > div:first-child {
+  min-width: 0;
+}
+.review-row a {
+  overflow-wrap: anywhere;
+}
+.review-row .action-group {
+  flex-shrink: 0;
+}
+.backup-panel {
+  border-top: 1px solid var(--line);
+  margin-top: 4rem;
+  padding-top: 2rem;
+}
+.backup-panel h2 {
+  margin: 0.5rem 0 1rem;
+}
+.backup-panel p,
+.review-help {
+  line-height: 1.8;
+}
+.backup-panel input[type='file'] {
+  max-width: 100%;
+  font: inherit;
+}
+.import-preview {
+  border: 1px solid var(--line);
+  padding: 1.5rem;
+  margin-top: 1rem;
+  border-radius: 0.5rem;
+}
+.import-preview button + button {
+  margin-left: 1rem;
+}
+.review-help {
+  margin-top: 1.5rem;
+}
+.review-help summary {
+  cursor: pointer;
+}
+@media (max-width: 640px) {
+  .review-row {
+    align-items: start;
+    flex-direction: column;
+  }
+  .import-preview button {
+    margin: 0.5rem 0;
+  }
+}

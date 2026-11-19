@@ -1,0 +1,46 @@
+topicId: main-entry
+questions:
+- type: mcq
+  prompt: __main__ 保护主要限制哪部分行为？
+  choices:
+  - id: a
+    text: 受保护代码仅在作为顶层程序运行时执行
+  - id: b
+    text: 保证整个模块被 import 时没有任何代码执行
+  - id: c
+    text: 自动让所有函数可以跨进程序列化
+  correct: a
+  explanation: Python 执行脚本或通过 -m 运行模块时，会设置顶层执行环境。if __name__ == "__main__" 只控制这段启动代码是否执行，并不会阻止其他未保护的顶层语句运行。把逻辑写进 main 函数，还能让测试直接调用函数并提供参数，不依赖解释器全局 argv。
+  id: main-entry-mcq
+  topicId: main-entry
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "def main(argv):\n    return 0 if argv == ['check'] else 2\nif __name__ == '__main__':\n    print(main(['check']))\n    print(main([]))\n"
+  answer: '0
+
+    2'
+  explanation: 入口保护把模块定义与程序启动分开，便于复用、测试和多进程安全启动。我通常将 main 返回码与业务异常策略写清楚，避免 import 就执行任务，并用真实命令行和指定的进程上下文验证启动行为。
+  id: main-entry-output
+  topicId: main-entry
+- type: debug
+  prompt: 这段代码被子进程重新加载时，为什么可能重复启动进程池？
+  code: 'from concurrent.futures import ProcessPoolExecutor
+
+    pool = ProcessPoolExecutor()
+
+    # 顶层立即提交任务，没有入口保护'
+  rubric:
+  - 区分模块导入与顶层程序运行环境
+  - 把进程创建放入 main 保护并用指定启动上下文验证
+  explanation: 不能把某个平台过去的默认进程启动方式当成永久规则，不同系统和 Python 版本可能改变默认值。跨版本示例应明确上下文并保持 worker 可导入。入口保护也不等于包导入路径正确；直接运行子目录脚本与 -m 包.模块 在包上下文上有差别，CLI 需选择一致的启动方式。
+  id: main-entry-debug
+  topicId: main-entry
+- type: oral
+  prompt: 设计同时可导入和可执行的 Python 工具时，入口应该承担哪些职责？
+  rubric:
+  - 区分模块导入与顶层程序运行环境
+  - 把进程创建放入 main 保护并用指定启动上下文验证
+  - 入口保护把模块定义与程序启动分开，便于复用、测试和多进程安全启动。我通常将 main 返回码与业务异常策略写清楚，避免 import 就执行任务，并用真实命令行和指定的进程上下文验证启动行为。
+  explanation: 命令行工具适合让 main(argv) 返回退出码，再由入口抛出 SystemExit。业务模块只定义函数和类型，启动层负责解析参数、创建资源和选择并发模式。多进程使用 spawn 或类似重新加载主模块的方式时，保护入口可以避免子进程导入过程中再次递归创建进程。
+  id: main-entry-oral
+  topicId: main-entry

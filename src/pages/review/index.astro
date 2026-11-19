@@ -5,6 +5,7 @@ import { url } from '../../lib/urls';
 const topics = (await getCollection('topics'))
   .sort((a, b) => a.data.order - b.data.order)
   .map((t) => ({ id: t.id, title: t.data.title }));
+const questions = (await getCollection('questions')).flatMap((s) => s.data.questions);
 ---
 
 <Layout title="学习记录" active="review">
@@ -12,108 +13,56 @@ const topics = (await getCollection('topics'))
     <a class="breadcrumb" href={url()}>
       知识库 / 学习记录
     </a>
-    <p class="eyebrow accent">看见自己的进步</p>
+    <p class="eyebrow accent">把理解留到下一次</p>
     <h1>读过，练过，再讲一遍。</h1>
-    <p class="page-intro">
-      阅读、客观题作答与最近一次开放题自评分别保存。
-      <br />
-      这些记录属于当前浏览器，清除网站数据会移除记录。
-    </p>
+    <p class="page-intro">收藏想读的，重练没说清的。阅读、客观成绩与开放题自评分别记录。</p>
     <div id="review-summary" class="result-stats"></div>
-    <div id="review-list" class="review-list"></div>
+    <div id="review-filters" class="review-filters" role="group" aria-label="学习记录筛选"></div>
+    <div id="review-actions" class="hero-actions"></div>
+    <p id="review-description" class="muted"></p>
+    <div id="review-list" class="review-list" aria-live="polite"></div>
+    <section class="backup-panel" aria-labelledby="backup-title">
+      <p class="eyebrow accent">随身携带你的记录</p>
+      <h2 id="backup-title">备份与迁移</h2>
+      <p>记录保存在当前浏览器。导出 JSON 后可在另一台设备导入；清除网站数据前请先备份。</p>
+      <div class="hero-actions">
+        <button id="export-progress" class="button secondary">
+          导出学习记录
+        </button>
+        <label class="button secondary" for="import-progress">
+          选择备份文件
+        </label>
+        <input id="import-progress" type="file" accept="application/json,.json" />
+        <button id="export-previous" class="small-button" hidden>
+          下载上次导入前的记录
+        </button>
+      </div>
+      <div id="import-preview" class="import-preview" hidden></div>
+      <p id="backup-status" role="status" aria-live="polite"></p>
+      <details class="review-help">
+        <summary>复习安排与历史记录说明</summary>
+        <p>
+          答错或自评“还需复习”会立即到期；“能说出部分”安排在 1
+          天后。连续答对或能独立说明，分别安排在 1、3、7、14 天后；之后保持 14
+          天间隔。到期按作答时刻计算，是复习建议，不代表已掌握。
+        </p>
+        <p>
+          错题队列只看每题最近一次客观作答，开放题单独巩固。S1 的阅读和累计成绩保留；逐题记录从 S2
+          开始，无法从旧累计成绩还原错题。请在一个标签页中作答，避免同时写入覆盖彼此记录。
+        </p>
+        <p>
+          导入会替换当前记录，不累加成绩；确认前会显示内容预览。替换前保留一份本地原始记录，可下载后重新导入。无法识别或损坏的文件不会导入。未知知识点和题目会跳过并提示。
+        </p>
+      </details>
+    </section>
     <script
-      type="application/json"
       id="review-data"
-      set:html={JSON.stringify(topics).replace(/</g, '\\u003c')}
+      type="application/json"
+      set:html={JSON.stringify({ topics, questions }).replace(/</g, '\u003c')}
     />
     <noscript>
       <p>学习记录需要 JavaScript。</p>
     </noscript>
   </div>
-  <script>
-    import { readProgress, PROGRESS_KEY } from '../../lib/progress';
-    import { url } from '../../lib/urls';
-    const topics = JSON.parse(document.getElementById('review-data')!.textContent!) as {
-      id: string;
-      title: string;
-    }[];
-    function render() {
-      const p = readProgress();
-      const active = topics.filter((t) => p.topics[t.id]);
-      const total = active.reduce(
-        (s, t) => {
-          const v = p.topics[t.id];
-          return {
-            read: s.read + (v.readAt ? 1 : 0),
-            attempts: s.attempts + v.objective.attempts,
-            correct: s.correct + v.objective.correct,
-          };
-        },
-        { read: 0, attempts: 0, correct: 0 },
-      );
-      const summary = document.getElementById('review-summary')!;
-      summary.replaceChildren();
-      for (const [value, label] of [
-        [`${total.read} / ${topics.length}`, '已阅读知识点'],
-        [String(total.attempts), '客观题累计作答'],
-        [
-          total.attempts ? `${Math.round((total.correct / total.attempts) * 100)}%` : '—',
-          '客观题累计正确率',
-        ],
-      ]) {
-        const div = document.createElement('div');
-        const strong = document.createElement('strong');
-        strong.textContent = value;
-        const span = document.createElement('span');
-        span.textContent = label;
-        div.append(strong, span);
-        summary.append(div);
-      }
-      const list = document.getElementById('review-list')!;
-      list.replaceChildren();
-      if (!active.length) {
-        const empty = document.createElement('div');
-        empty.className = 'empty-state';
-        const h = document.createElement('h2');
-        h.textContent = '从一个问题开始';
-        const a = document.createElement('a');
-        a.className = 'button primary';
-        a.href = url();
-        a.textContent = '浏览知识库';
-        empty.append(h, a);
-        list.append(empty);
-        return;
-      }
-      for (const t of active) {
-        const v = p.topics[t.id];
-        const row = document.createElement('div');
-        row.className = 'review-row';
-        const a = document.createElement('a');
-        a.href = url(`topics/${t.id}/`);
-        a.textContent = t.title;
-        const details = document.createElement('p');
-        details.textContent = [
-          v.readAt ? '已阅读' : '未标记阅读',
-          v.objective.attempts
-            ? `客观题 ${v.objective.correct}/${v.objective.attempts} 次答对`
-            : '尚未作答客观题',
-          v.self
-            ? `最近自评：${{ again: '还需复习', partial: '能说出部分', confident: '能独立说明' }[v.self]}`
-            : '尚未自评',
-        ].join(' · ');
-        const practice = document.createElement('a');
-        practice.href = url(`practice/?topic=${t.id}`);
-        practice.className = 'small-button';
-        practice.textContent = '练习';
-        const text = document.createElement('div');
-        text.append(a, details);
-        row.append(text, practice);
-        list.append(row);
-      }
-    }
-    render();
-    window.addEventListener('storage', (e) => {
-      if (e.key === PROGRESS_KEY) render();
-    });
-  </script>
+  <script src="../../scripts/review.ts" />
 </Layout>

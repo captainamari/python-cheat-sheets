@@ -1,0 +1,42 @@
+topicId: subtest-cases
+questions:
+- type: mcq
+  prompt: 一个方法里的多个 subTest，关于 setUp 的执行哪项正确？
+  choices:
+  - id: a
+    text: 每个子测试都会创建全新测试实例
+  - id: b
+    text: 不会为每个子测试自动重新执行
+  - id: c
+    text: 任何共享状态都会自动深拷贝
+  correct: b
+  explanation: 普通循环中一次断言失败会结束当前测试方法，后续输入无法继续检查。with self.subTest(...) 让框架记录当前参数的失败并继续循环，报告能指出具体哪组数据有问题。子测试仍属于同一个测试方法，方法级夹具和局部可变对象可以被所有迭代共享。
+  id: subtest-cases-mcq
+  topicId: subtest-cases
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import unittest\nclass Cases(unittest.TestCase):\n    def test_sizes(self):\n        for text, expected in [('', 0), ('ab', 2)]:\n            with self.subTest(text=text):\n                self.assertEqual(len(text), expected)\nresult = unittest.TestResult()\nCases('test_sizes').run(result)\nprint(result.testsRun)\nprint(result.wasSuccessful())\n"
+  answer: '1
+
+    True'
+  explanation: subTest 适合重复结构、独立输入的断言，让一次运行暴露多组失败。它不重建夹具，我会在每组内部重置状态，并用参数名帮助定位。互相依赖或资源生命周期不同的流程，应拆成独立测试。
+  id: subtest-cases-output
+  topicId: subtest-cases
+- type: debug
+  prompt: 第二组数据受第一组修改影响，为什么 subTest 没有隔离它？
+  code: "items = []\nfor value in [1, 2]:\n    with self.subTest(value=value):\n        items.append(value)\n        self.assertEqual(len(items), 1)"
+  rubric:
+  - 说明子测试报告隔离不等于夹具和状态隔离
+  - 把每组可变状态在循环内新建并选择独立输入场景
+  explanation: 不要把一个完整多阶段业务流程拆成互相依赖的子测试，然后在前一步失败后继续使用无效状态。subTest 让报告更全面，不保证后续步骤仍然有意义。也不能只统计方法数推断覆盖了多少场景；测试设计应记录输入类别、边界和关键不变量，而非追求数量本身。
+  id: subtest-cases-debug
+  topicId: subtest-cases
+- type: oral
+  prompt: 什么时候应该用 subTest，什么时候应该拆成多个独立测试方法？
+  rubric:
+  - 说明子测试报告隔离不等于夹具和状态隔离
+  - 把每组可变状态在循环内新建并选择独立输入场景
+  - subTest 适合重复结构、独立输入的断言，让一次运行暴露多组失败。它不重建夹具，我会在每组内部重置状态，并用参数名帮助定位。互相依赖或资源生命周期不同的流程，应拆成独立测试。
+  explanation: 纯函数的边界输入、解析规则和格式化组合适合使用 subTest，参数名称应体现业务含义，如 empty、negative 或 invalid_date。每组需要独立对象时，应在循环内部创建，而不是依赖 setUp 为每组重置。用例之间生命周期差异很大时，拆成独立方法通常更清晰。
+  id: subtest-cases-oral
+  topicId: subtest-cases

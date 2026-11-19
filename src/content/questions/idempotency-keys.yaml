@@ -1,0 +1,40 @@
+topicId: idempotency-keys
+questions:
+- type: mcq
+  prompt: 客户端写请求超时后，为什么不能直接认定服务端没有写入？
+  choices:
+  - id: a
+    text: 超时会自动撤销远程所有事务
+  - id: b
+    text: 提交可能成功但响应尚未到达
+  - id: c
+    text: TCP 断开保证数据库立即回滚
+  correct: b
+  explanation: 调用方可能在服务端提交成功后、收到响应前断开连接，此时无法仅凭超时区分失败和结果未知。幂等设计为逻辑操作分配稳定键，服务端第一次成功后保存结果，后续相同操作返回已有结果。数据库唯一约束负责挡住并发重复，单纯先查再写的应用判断会存在竞争窗口。
+  id: idempotency-keys-mcq
+  topicId: idempotency-keys
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import sqlite3\nconnection = sqlite3.connect(':memory:')\ntry:\n    connection.execute('CREATE TABLE receipts (key TEXT PRIMARY KEY, amount INTEGER)')\n    for _ in range(2):\n        connection.execute('INSERT INTO receipts VALUES (?, ?) ON CONFLICT(key) DO NOTHING', ('order-1', 100))\n    print(connection.execute('SELECT count(*), sum(amount) FROM receipts').fetchone())\nfinally:\n    connection.close()\n"
+  answer: (1, 100)
+  explanation: 幂等解决的是重复请求与结果未知，不是保证所有请求永远只执行一次。稳定业务键、唯一约束、请求一致性检查和结果保存要协同设计。验证覆盖并发重复、提交后断连、不同载荷复用键以及保留期边界。
+  id: idempotency-keys-output
+  topicId: idempotency-keys
+- type: debug
+  prompt: 并发请求仍重复创建订单，先查再写为什么不够？
+  code: "if not store.exists(key):\n    store.create_order(key, amount)\nreturn 'ok'"
+  rubric:
+  - 解释结果未知、稳定幂等键与数据库唯一约束
+  - 把幂等记录和业务变更放在可靠提交边界，并检查请求一致性
+  explanation: 只捕获唯一约束错误并返回成功，可能掩盖不同请求复用同一键的问题。示例用主键演示重复阻断，不代表一个通用的支付实现。跨数据库或外部消息发送不能靠一个本地事务自动获得原子性，可能需要事务发件箱、下游幂等或补偿机制，必须按实际副作用边界分析。
+  id: idempotency-keys-debug
+  topicId: idempotency-keys
+- type: oral
+  prompt: 幂等键除了唯一性，还需要约定哪些载荷、范围和保留规则？
+  rubric:
+  - 解释结果未知、稳定幂等键与数据库唯一约束
+  - 把幂等记录和业务变更放在可靠提交边界，并检查请求一致性
+  - 幂等解决的是重复请求与结果未知，不是保证所有请求永远只执行一次。稳定业务键、唯一约束、请求一致性检查和结果保存要协同设计。验证覆盖并发重复、提交后断连、不同载荷复用键以及保留期边界。
+  explanation: 一个事务里插入幂等记录并执行业务变更，可以避免“记录说已处理但业务未写入”或相反的状态。还应保存请求摘要或关键字段，相同键但不同金额不能直接复用旧结果。幂等键的租户范围、保留时间和失败是否允许重试都属于接口契约，需要与调用方的重试周期一致。
+  id: idempotency-keys-oral
+  topicId: idempotency-keys

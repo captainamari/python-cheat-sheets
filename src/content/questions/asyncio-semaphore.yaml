@@ -1,0 +1,48 @@
+topicId: asyncio-semaphore
+questions:
+- type: mcq
+  prompt: Semaphore(3) 直接保证的是什么？
+  choices:
+  - id: a
+    text: 每秒最多发送三次请求
+  - id: b
+    text: 最多三个任务同时持有许可
+  - id: c
+    text: 整个集群最多创建三个任务
+  correct: b
+  explanation: 信号量维护可用许可数量，acquire 在没有许可时等待，release 归还许可。async with 将获取和释放包在任务生命周期里，即使内部抛异常也执行退出逻辑。许可数为三意味着最多三项同时处在该区域，并不意味着一秒钟最多发出三次请求；任务很快完成时吞吐可以远高于三。
+  id: asyncio-semaphore-mcq
+  topicId: asyncio-semaphore
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import asyncio\nasync def main():\n    semaphore = asyncio.Semaphore(1)\n    print(semaphore.locked())\n    async with semaphore:\n        print(semaphore.locked())\n    print(semaphore.locked())\nasyncio.run(main())\n"
+  answer: 'False
+
+    True
+
+    False'
+  explanation: 信号量控制同时在途数，限速控制单位时间次数，两者不能互换。我把许可边界放在真正的下游操作上，用上下文管理保证释放，并配合有界队列与总超时。验证时观察峰值在途数以及异常后能否继续处理。
+  id: asyncio-semaphore-output
+  topicId: asyncio-semaphore
+- type: debug
+  prompt: 异常发生几次后所有请求都卡住，许可管理有什么问题？
+  code: 'await semaphore.acquire()
+
+    result = await call_remote()
+
+    semaphore.release()'
+  rubric:
+  - 区分在途并发数、排队容量和单位时间速率
+  - 用 async with 保证失败释放，并测试异常后仍能获取许可
+  explanation: 手动 acquire 后忘记在异常分支释放，会让可用许可逐渐耗尽。释放次数过多则可能悄悄放大并发；BoundedSemaphore 可以帮助发现超过初始值的释放。协程信号量不用于跨线程同步，多个进程各自一个信号量也不会自动形成全局并发限制。
+  id: asyncio-semaphore-debug
+  topicId: asyncio-semaphore
+- type: oral
+  prompt: 同时面对下游连接上限和每分钟调用配额时，应该如何组合控制？
+  rubric:
+  - 区分在途并发数、排队容量和单位时间速率
+  - 用 async with 保证失败释放，并测试异常后仍能获取许可
+  - 信号量控制同时在途数，限速控制单位时间次数，两者不能互换。我把许可边界放在真正的下游操作上，用上下文管理保证释放，并配合有界队列与总超时。验证时观察峰值在途数以及异常后能否继续处理。
+  explanation: 调用模型或数据库时，可以在实际占用下游资源的部分持有许可，并根据连接池、服务容量和延迟测量调整并发。大批任务还需要有界输入，避免全部任务先创建、再堵在信号量前。对于每分钟配额，另外设置时间窗口或令牌桶一类速率策略，并明确等待是否占用请求总预算。
+  id: asyncio-semaphore-oral
+  topicId: asyncio-semaphore

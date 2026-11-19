@@ -1,0 +1,58 @@
+topicId: dict-order
+questions:
+- type: mcq
+  prompt: 更新一个已经存在的字典键，会怎样影响遍历顺序？
+  choices:
+  - id: a
+    text: 自动移动到最后一个位置
+  - id: b
+    text: 根据新值重新排序全部键
+  - id: c
+    text: 保留该键原来的位置
+  correct: c
+  explanation: 字典既是映射，也保留键的插入次序。遍历 keys、values 和 items 遵循相同顺序，但这不改变按键查找的语义。替换已有键的值只更新对应条目，删除再插入则成为新的插入事件。两个普通字典的相等比较主要看键值映射，不会因为插入顺序不同就自动不相等。
+  id: dict-order-mcq
+  topicId: dict-order
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'data = {''b'': 1, ''a'': 2}
+
+    data[''b''] = 3
+
+    print(list(data))
+
+    del data[''b'']
+
+    data[''b''] = 4
+
+    print(list(data))
+
+    print(sorted(data))
+
+    '
+  answer: '[''b'', ''a'']
+
+    [''a'', ''b'']
+
+    [''a'', ''b'']'
+  explanation: 字典有序指插入有序，不是自动排序。修改值不移动键，删后重插移到末尾。工程里我把映射查找和展示排序分开，删除条目前先收集键，并对需要稳定输出的接口明确排序字段。
+  id: dict-order-output
+  topicId: dict-order
+- type: debug
+  prompt: 为什么清理空值的这段循环存在结构修改问题？
+  code: "data = {'a': None, 'b': 2}\nfor key in data:\n    if data[key] is None:\n        del data[key]"
+  rubric:
+  - 区分插入次序、映射相等与显式排序
+  - 先收集待删除键或构造新字典，避免遍历时改变键集合
+  explanation: 迭代字典时直接增删键可能触发 RuntimeError，不能靠一次小样例未报错判断可行。需要删除符合条件的项，可以先收集键再删，或构造新字典。dict.keys() 是动态视图而非冻结快照，原字典改变后视图能反映变化；需要稳定的待处理键列表时应显式转为 list。
+  id: dict-order-debug
+  topicId: dict-order
+- type: oral
+  prompt: 如何让字典输出稳定，以及 keys 视图和列表快照有什么区别？
+  rubric:
+  - 区分插入次序、映射相等与显式排序
+  - 先收集待删除键或构造新字典，避免遍历时改变键集合
+  - 字典有序指插入有序，不是自动排序。修改值不移动键，删后重插移到末尾。工程里我把映射查找和展示排序分开，删除条目前先收集键，并对需要稳定输出的接口明确排序字段。
+  explanation: 生成可读配置时，插入顺序可以保留作者组织内容的方式；生成可重复的快照或签名时，则要先定义规范顺序。查询数据库得到的记录若没有 ORDER BY，即便装入字典保持了当次顺序，也不保证下一次查询相同。排序应发生在数据边界，使用明确的比较键。
+  id: dict-order-oral
+  topicId: dict-order

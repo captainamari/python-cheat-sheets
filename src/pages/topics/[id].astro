@@ -39,6 +39,14 @@ const expected = await readFile(
       <p class="article-summary" data-pagefind-meta="description">
         {topic.data.summary}
       </p>
+      <button
+        id="bookmark-topic"
+        class="small-button bookmark-button"
+        aria-pressed="false"
+        data-pagefind-ignore
+      >
+        收藏这篇
+      </button>
       <div class="learning-goals">
         <span class="eyebrow">读完你应该能够</span>
         <ul>
@@ -128,18 +136,32 @@ const expected = await readFile(
     </aside>
   </div>
   <script>
-    import { readProgress, saveProgress, markRead, PROGRESS_KEY } from '../../lib/progress';
+    import {
+      readProgress,
+      saveProgress,
+      markRead,
+      toggleBookmark,
+      PROGRESS_KEY,
+    } from '../../lib/progress';
     const id = document.querySelector<HTMLElement>('[data-topic-id]')!.dataset.topicId!;
     const button = document.getElementById('mark-read') as HTMLButtonElement;
+    const bookmark = document.getElementById('bookmark-topic') as HTMLButtonElement;
+    bookmark.addEventListener('click', () => {
+      saveProgress(toggleBookmark(readProgress(), id));
+      update();
+    });
     function update() {
-      const read = !!readProgress().topics[id]?.readAt;
+      const saved = readProgress().bookmarks[id] !== undefined;
+      bookmark.textContent = saved ? '已收藏 · 点击取消' : '收藏这篇';
+      bookmark.setAttribute('aria-pressed', String(saved));
+      const read = readProgress().topics[id]?.readAt !== undefined;
       button.textContent = read ? '已阅读 · 点击取消' : '标记已阅读';
       button.setAttribute('aria-pressed', String(read));
     }
     update();
     button.addEventListener('click', () => {
       const p = readProgress();
-      saveProgress(markRead(p, id, !p.topics[id]?.readAt));
+      saveProgress(markRead(p, id, p.topics[id]?.readAt === undefined));
       update();
     });
     window.addEventListener('storage', (e) => {
