@@ -81,7 +81,7 @@ test('S1记录迁移保留原文，坏备份与取消导入都不改变当前记
   const old = {
     version: 1,
     topics: {
-      'mutable-defaults': { readAt: 123, objective: { attempts: 5, correct: 3 }, self: 'partial' },
+      'mutable-defaults': { readAt: 0, objective: { attempts: 5, correct: 3 }, self: 'partial' },
     },
   };
   await page.goto('');

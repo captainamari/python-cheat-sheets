@@ -126,7 +126,7 @@ const totalQuestions = questions.reduce((n, q) => n + q.data.questions.length, 0
     function update() {
       const p = readProgress();
       document.querySelectorAll<HTMLElement>('[data-read-state]').forEach((el) => {
-        const read = !!p.topics[el.dataset.readState!]?.readAt;
+        const read = p.topics[el.dataset.readState!]?.readAt !== undefined;
         el.textContent = read ? '已阅读' : '未阅读';
         el.classList.toggle('is-read', read);
       });

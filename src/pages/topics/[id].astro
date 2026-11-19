@@ -154,14 +154,14 @@ const expected = await readFile(
       const saved = readProgress().bookmarks[id] !== undefined;
       bookmark.textContent = saved ? '已收藏 · 点击取消' : '收藏这篇';
       bookmark.setAttribute('aria-pressed', String(saved));
-      const read = !!readProgress().topics[id]?.readAt;
+      const read = readProgress().topics[id]?.readAt !== undefined;
       button.textContent = read ? '已阅读 · 点击取消' : '标记已阅读';
       button.setAttribute('aria-pressed', String(read));
     }
     update();
     button.addEventListener('click', () => {
       const p = readProgress();
-      saveProgress(markRead(p, id, !p.topics[id]?.readAt));
+      saveProgress(markRead(p, id, p.topics[id]?.readAt === undefined));
       update();
     });
     window.addEventListener('storage', (e) => {

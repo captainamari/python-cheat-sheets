@@ -135,7 +135,7 @@ function intro() {
   root.append(
     e(
       'p',
-      topic?.title ?? '每轮随机抽取 10 题。选择、代码输出自动判分；排障与口述按要点自评。',
+      topic?.title ?? '每轮随机抽取最多 10 题。选择、代码输出自动判分；排障与口述按要点自评。',
       'page-intro',
     ),
   );
