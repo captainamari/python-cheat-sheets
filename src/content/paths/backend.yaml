@@ -1,0 +1,9 @@
+title: 后端与 AI 服务
+description: 关注资源释放、异步任务、请求阻塞与数据一致性。
+topics:
+  - context-managers
+  - gil
+  - asyncio-cancellation
+  - asgi-blocking
+  - sqlite-transactions
+  - mock-boundaries

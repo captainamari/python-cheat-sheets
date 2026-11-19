@@ -1,0 +1,55 @@
+topicId: object-sharing
+questions:
+  - type: mcq
+    prompt: 函数内将列表形参重新绑定到新列表，调用方的名字会怎样？
+    choices:
+      - id: a
+        text: 也重新绑定到新列表
+      - id: b
+        text: 仍然绑定原来的列表
+      - id: c
+        text: 绑定到函数返回的对象
+      - id: d
+        text: 原列表被自动清空
+    correct: b
+    explanation: 重新赋值只改变形参的局部绑定。只有修改共享对象本身，调用方才会通过原引用观察到变化。
+    id: object-sharing-mcq
+    topicId: object-sharing
+  - type: output
+    prompt: 下面程序会输出什么？每行填写一个输出结果。
+    code: 'a = [1]
+
+      b = a
+
+      b += [2]
+
+      b = b + [3]
+
+      print(a)
+
+      print(b)'
+    answer: '[1, 2]
+
+      [1, 2, 3]'
+    explanation: 列表 += 原地扩展共享对象；+ 构造新列表，然后仅将 b 绑定到新对象。
+    id: object-sharing-output
+    topicId: object-sharing
+  - type: debug
+    prompt: 调用后原数据被改了。如果函数约定不修改输入，应怎样修复？
+    code: "def add_label(labels):\n    result = labels\n    result.append(\"new\")\n    return result"
+    rubric:
+      - 指出 result 与 labels 绑定同一列表
+      - 用 labels.copy() 或 [*labels, "new"] 构造新列表
+      - 说明此处只增加字符串；嵌套成员隔离需另行考虑
+    explanation: 赋值不会复制容器。这里创建新的外层列表足够实现新增标签不修改输入的约定，但不能把它推广为深层隔离。
+    id: object-sharing-debug
+    topicId: object-sharing
+  - type: oral
+    prompt: 用一个例子解释 Python 参数传递，并说明 is 与 == 的区别。
+    rubric:
+      - 区分名字重新绑定和对象原地修改
+      - 说明形参、实参可能共享同一对象
+      - 区分身份比较与值比较
+    explanation: 回答应能够预测修改列表和重新赋值的不同结果，不必停留在“值传递还是引用传递”的术语争论。
+    id: object-sharing-oral
+    topicId: object-sharing

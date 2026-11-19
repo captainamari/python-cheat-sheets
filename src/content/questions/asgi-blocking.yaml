@@ -1,0 +1,45 @@
+topicId: asgi-blocking
+questions:
+  - type: mcq
+    prompt: 在 async 路由里直接调用同步 requests.get，通常意味着什么？
+    choices:
+      - id: a
+        text: 框架一定自动转到线程池
+      - id: b
+        text: 仍可能阻塞事件循环线程
+      - id: c
+        text: 请求会自动变成多进程执行
+      - id: d
+        text: 只要存在 await 就不会阻塞
+    correct: b
+    explanation: 同步工具函数在 async 路由内部被直接调用时，通常就在当前事件循环线程执行；async 声明不会自动改写库的 I/O 行为。
+    id: asgi-blocking-mcq
+    topicId: asgi-blocking
+  - type: output
+    prompt: await to_thread 后返回值如何流转？
+    code:
+      "import asyncio\ndef transform(n):\n    return n + 5\nasync def main():\n    result = await asyncio.to_thread(transform,\
+      \ 2)\n    print(result)\nasyncio.run(main())"
+    answer: '7'
+    explanation: to_thread 在线程中执行同步函数，await 等待其结果并在当前协程继续使用；此处返回 2 + 5。
+    id: asgi-blocking-output
+    topicId: asgi-blocking
+  - type: debug
+    prompt: 这个接口使同进程其他请求延迟增加，应该检查和修改哪里？
+    code: "async def endpoint():\n    time.sleep(2)\n    response = requests.get(url)\n    return response.json()"
+    rubric:
+      - time.sleep 和同步 HTTP 调用都可能阻塞事件循环
+      - 等待改用 asyncio.sleep，HTTP 改用异步客户端或受控线程池
+      - 设置超时、连接池和并发限制，并验证其他请求延迟
+    explanation: 仅把函数名改成 async 没有改变内部调用方式。修复必须覆盖真实阻塞点，同时避免把问题转成线程池或连接池耗尽。
+    id: asgi-blocking-debug
+    topicId: asgi-blocking
+  - type: oral
+    prompt: FastAPI 的同步路由与 async 路由内的同步工具函数有什么不同？
+    rubric:
+      - 区分框架负责调用的入口与自行调用的工具函数
+      - 说明同步入口可由框架放入线程池
+      - 说明 async 内部调用仍需明确处理阻塞
+    explanation: 框架只能在它管理的调用边界安排执行方式。开发者直接调用的同步函数不会因为处在 async 路由里就自动变成异步。
+    id: asgi-blocking-oral
+    topicId: asgi-blocking

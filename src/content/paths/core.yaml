@@ -1,0 +1,11 @@
+title: Python 核心复习
+description: 从对象与函数出发，建立解释代码行为的基础。
+topics:
+  - object-sharing
+  - mutable-defaults
+  - shallow-copy
+  - closure-binding
+  - decorators
+  - generators
+  - context-managers
+  - gil

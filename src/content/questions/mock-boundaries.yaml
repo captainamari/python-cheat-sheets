@@ -1,0 +1,57 @@
+topicId: mock-boundaries
+questions:
+  - type: mcq
+    prompt: service.py 使用 from provider import fetch，调用 fetch()；通常应 patch 哪里？
+    choices:
+      - id: a
+        text: provider.fetch
+      - id: b
+        text: service.fetch
+      - id: c
+        text: unittest.mock.fetch
+      - id: d
+        text: 调用方所有局部变量
+    correct: b
+    explanation: service 在导入时持有自己的 fetch 绑定，被测代码从 service 命名空间查找它，因此应替换实际被查找的位置。
+    id: mock-boundaries-mcq
+    topicId: mock-boundaries
+  - type: output
+    prompt: 这个测试替身依次返回什么？最终调用次数是多少？
+    code: 'from unittest.mock import Mock
+
+      fetch = Mock(side_effect=["a", "b"])
+
+      print(fetch())
+
+      print(fetch())
+
+      print(fetch.call_count)'
+    answer: 'a
+
+      b
+
+      2'
+    explanation: 可迭代的 side_effect 按调用顺序提供结果，调用次数仍被记录。第三次调用会耗尽该序列，不能假定会循环。
+    id: mock-boundaries-output
+    topicId: mock-boundaries
+  - type: debug
+    prompt: 为什么这个单元测试即使请求 ID 写错了，也可能通过？
+    code: 'fetch = Mock(return_value={"name": "Jesse"})
+
+      assert display_name(7, fetch) == "Jesse"'
+    rubric:
+      - 替身对任意参数都返回同一结果
+      - 增加 assert_called_once_with(7)
+      - 补充异常传播测试并按需要使用接口规格
+    explanation: 返回值断言只能说明格式处理结果。外部边界的关键调用参数也属于行为契约，应验证，但不必 mock 所有内部函数。
+    id: mock-boundaries-debug
+    topicId: mock-boundaries
+  - type: oral
+    prompt: 哪些场景使用 mock，哪些需要集成测试？怎样避免测试污染？
+    rubric:
+      - 单元测试控制外部不稳定依赖和失败路径
+      - 真实协议、SQL 与适配行为需要集成或契约验证
+      - 控制 fixture 作用域并清理共享状态
+    explanation: mock 提高可控性，但只能验证你定义的替身行为。接口兼容性与真实资源行为需要另一层测试，隔离则贯穿所有层级。
+    id: mock-boundaries-oral
+    topicId: mock-boundaries

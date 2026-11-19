@@ -1,0 +1,9 @@
+title: 测试开发
+description: 从可变状态与隔离出发，理解测试替身和失败路径。
+topics:
+  - object-sharing
+  - mutable-defaults
+  - shallow-copy
+  - context-managers
+  - mock-boundaries
+  - sqlite-transactions

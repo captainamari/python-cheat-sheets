@@ -1,0 +1,104 @@
+---
+import '../styles/global.css';
+import { url } from '../lib/urls';
+const {
+  title = 'Python Cheat Sheets',
+  description = '把 Python 知识讲清楚，把代码行为想明白。',
+  active = 'learn',
+} = Astro.props;
+const links = [
+  { id: 'learn', label: '知识库', path: '' },
+  { id: 'practice', label: '练习', path: 'practice/' },
+  { id: 'review', label: '学习记录', path: 'review/' },
+];
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title === 'Python Cheat Sheets' ? title : `${title} · Python Cheat Sheets`}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <link rel="icon" type="image/svg+xml" href={url('favicon.svg')} />
+    <meta name="theme-color" content="#fdf6e3" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">
+      跳到正文
+    </a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href={url()} aria-label="Python Cheat Sheets 首页">
+          <span class="brand-icon" aria-hidden="true">
+            [·]
+          </span>
+          <span>
+            Python<span class="brand-sub">CHEAT SHEETS</span>
+          </span>
+        </a>
+        <nav aria-label="主导航">
+          {links.map((link) => (
+            <a
+              class:list={{ active: active === link.id }}
+              href={url(link.path)}
+              aria-current={active === link.id ? 'page' : undefined}
+            >
+              {link.label}
+            </a>
+          ))}
+        </nav>
+        <a class="search-link" href={url('search/')} aria-label="搜索知识库">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            aria-hidden="true"
+          >
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="m16 16 5 5" />
+          </svg>
+          <span>搜索</span>
+          <kbd>/</kbd>
+        </a>
+      </div>
+    </header>
+    <div id="storage-notice" class="notice wrap" role="status" hidden></div>
+    <main id="main">
+      <slot />
+    </main>
+    <footer class="site-footer wrap">
+      <span>
+        Python Cheat Sheets <span class="footer-note">· 理解原理，练习表达</span>
+      </span>
+      <div>
+        <span>进度保存在当前浏览器</span>
+        <a
+          href="https://github.com/captainamari/python-cheat-sheets"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub
+        </a>
+      </div>
+    </footer>
+    <script>
+      import { url } from '../lib/urls';
+      document.addEventListener('keydown', (e) => {
+        const target = e.target as HTMLElement;
+        if (
+          e.key === '/' &&
+          !e.ctrlKey &&
+          !e.metaKey &&
+          !['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) &&
+          !target.isContentEditable
+        ) {
+          e.preventDefault();
+          window.location.href = url('search/');
+        }
+      });
+    </script>
+  </body>
+</html>

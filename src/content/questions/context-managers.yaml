@@ -1,0 +1,56 @@
+topicId: context-managers
+questions:
+  - type: mcq
+    prompt: __enter__ 成功后，__exit__ 返回 True 会有什么效果？
+    choices:
+      - id: a
+        text: 让代码块自动重试
+      - id: b
+        text: 把异常继续传给上层
+      - id: c
+        text: 抑制代码块产生的异常
+      - id: d
+        text: 再次调用 __enter__
+    correct: c
+    explanation: 退出方法收到异常信息后返回真值表示已经处理并抑制该异常。这与单纯释放资源是两个独立决定。
+    id: context-managers-mcq
+    topicId: context-managers
+  - type: output
+    prompt: 上下文按什么顺序退出？写出实际输出。
+    code:
+      "from contextlib import contextmanager\n@contextmanager\ndef tag(name):\n    print(\"enter\",\
+      \ name)\n    try:\n        yield\n    finally:\n        print(\"exit\", name)\nwith tag(\"a\"), tag(\"\
+      b\"):\n    print(\"body\")"
+    answer: 'enter a
+
+      enter b
+
+      body
+
+      exit b
+
+      exit a'
+    explanation: 上下文按声明顺序进入，按相反顺序退出，保证后取得的资源先释放。
+    id: context-managers-output
+    topicId: context-managers
+  - type: debug
+    prompt: 工作抛异常后 release 没执行，应该怎样组织这段代码？
+    code:
+      "from contextlib import contextmanager\n@contextmanager\ndef managed():\n    handle = acquire()\n\
+      \    yield handle\n    release(handle)"
+    rubric:
+      - 把 yield 放入 try，把 release 放入 finally
+      - 让不需要处理的业务异常继续传播
+      - 考虑 acquire 部分失败时自身的清理责任
+    explanation: 异常会从 yield 处抛入生成器，跳过后续普通语句。finally 才能覆盖这条失败路径。进入阶段失败则需要获取逻辑自己处理。
+    id: context-managers-debug
+    topicId: context-managers
+  - type: oral
+    prompt: 清理资源和处理异常有什么区别？with 有哪些保证边界？
+    rubric:
+      - 说明进入成功后退出的正常与异常路径
+      - 说明返回真值或捕获不抛出会抑制异常
+      - 说明强制终止与进入失败的边界
+    explanation: 好的资源管理在业务失败时仍释放资源，并保留可诊断的错误。with 不提供断电或强制杀进程后的清理保证。
+    id: context-managers-oral
+    topicId: context-managers

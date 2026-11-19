@@ -1,0 +1,50 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { url } from '../../lib/urls';
+---
+
+<Layout title="搜索知识库" active="search">
+  <div class="wrap page-narrow">
+    <a class="breadcrumb" href={url()}>
+      知识库 / 搜索
+    </a>
+    <p class="eyebrow accent">找到问题的切入点</p>
+    <h1>你想弄懂什么？</h1>
+    <p class="page-intro">搜索中文概念、Python API 或你遇到的现象。</p>
+    <form id="search-form" role="search">
+      <label class="sr-only" for="search-input">
+        搜索知识库
+      </label>
+      <div class="search-input-wrap">
+        <input
+          id="search-input"
+          name="q"
+          type="search"
+          placeholder="试试：可变默认参数、GIL、TaskGroup"
+          autocomplete="off"
+        />
+        <button class="button primary" type="submit">
+          搜索
+        </button>
+      </div>
+    </form>
+    <div class="search-suggestions">
+      常用搜索：
+      {['闭包', '事务', 'asyncio', 'mock'].map((q) => (
+        <button type="button" data-query={q}>
+          {q}
+        </button>
+      ))}
+    </div>
+    <p id="search-status" class="muted" role="status" aria-live="polite">
+      输入关键词，搜索全部知识点正文。
+    </p>
+    <div id="search-results" class="topic-list standalone-list"></div>
+    <noscript>
+      <p>
+        搜索需要 JavaScript。你仍可在<a href={url()}>知识库</a>按分类阅读全部内容。
+      </p>
+    </noscript>
+  </div>
+  <script src="../../scripts/search.ts" />
+</Layout>
