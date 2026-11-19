@@ -1,0 +1,54 @@
+topicId: stable-sorting
+questions:
+- type: mcq
+  prompt: 稳定排序保证了哪种行为？
+  choices:
+  - id: a
+    text: 每次排序都产生一个新的列表
+  - id: b
+    text: 键相同的项目保留输入相对顺序
+  - id: c
+    text: 无需比较键就能跨运行顺序相同
+  correct: b
+  explanation: 排序过程中 key 提取每个输入元素的比较依据，稳定性保证键相同的元素不被无故交换。元组比较按位置依次进行，因此 (department, score) 先按部门，再按分数。同一个方向的多字段规则可以放进元组；不同方向则可通过合适的转换或先次要键、后主要键的稳定排序表达。
+  id: stable-sorting-mcq
+  topicId: stable-sorting
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'rows = [(''a'', 2), (''b'', 1), (''c'', 2)]
+
+    result = sorted(rows, key=lambda row: row[1])
+
+    print([name for name, _ in result])
+
+    print(rows.sort(key=lambda row: row[1]))
+
+    print([name for name, _ in rows])
+
+    '
+  answer: '[''b'', ''a'', ''c'']
+
+    None
+
+    [''b'', ''a'', ''c'']'
+  explanation: 稳定排序保留相同键的输入顺序，sorted 产生新列表而 sort 修改原列表。业务排序用 key 明确字段优先级，处理空值并增加稳定的决胜字段。验证时我会专门放入多个相同键的记录，检查它们的相对顺序。
+  id: stable-sorting-output
+  topicId: stable-sorting
+- type: debug
+  prompt: 函数应该返回排序后的列表，为什么下面返回 None？
+  code: "def ranked(values):\n    values = values.sort()\n    return values"
+  rubric:
+  - 说明稳定性的范围及相同键元素的相对顺序
+  - 使用 sorted 返回新列表或先 sort 再返回原列表
+  explanation: 不要写 results = results.sort()，因为方法返回 None。排序 key 应该是确定、可比较的值，不要把网络请求或会变化的全局状态放进 key。字段混有 None 和数字时要明确空值排序策略，例如先比较是否缺失，再比较实际数值，不能依赖不同类型自动获得业务上合理的次序。
+  id: stable-sorting-debug
+  topicId: stable-sorting
+- type: oral
+  prompt: 如果要求报告在多次运行中顺序一致，仅靠稳定排序够不够？
+  rubric:
+  - 说明稳定性的范围及相同键元素的相对顺序
+  - 使用 sorted 返回新列表或先 sort 再返回原列表
+  - 稳定排序保留相同键的输入顺序，sorted 产生新列表而 sort 修改原列表。业务排序用 key 明确字段优先级，处理空值并增加稳定的决胜字段。验证时我会专门放入多个相同键的记录，检查它们的相对顺序。
+  explanation: 批次报告可以先按执行顺序收集结果，再按失败级别排序，稳定性使同级别项目保持原来的顺序。若原始数据来自无序集合或没有排序约束的查询，稳定排序只能保持当次输入顺序，不能创造跨次运行的确定性。需要完全可重复时，要补一个稳定的最终比较键，例如用例 ID。
+  id: stable-sorting-oral
+  topicId: stable-sorting

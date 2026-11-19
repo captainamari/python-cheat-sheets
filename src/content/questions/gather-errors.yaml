@@ -1,0 +1,44 @@
+topicId: gather-errors
+questions:
+- type: mcq
+  prompt: gather(return_exceptions=True) 的结果需要怎样处理？
+  choices:
+  - id: a
+    text: 所有项都保证是成功值
+  - id: b
+    text: 逐项区分成功值和异常对象
+  - id: c
+    text: 按完成时间排序后才会返回
+  correct: b
+  explanation: gather 把多个可等待对象组合起来，返回结果的顺序对应输入顺序，而不是完成顺序。默认模式中某个任务失败，等待 gather 的代码会收到异常，其余任务仍可能继续执行。若 gather 本身被取消，则会向未完成的子任务传播取消；这与某个子任务普通失败是不同路径。
+  id: gather-errors-mcq
+  topicId: gather-errors
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import asyncio\nasync def value(): return 3\nasync def fail(): raise ValueError('bad')\nasync def main():\n    results = await asyncio.gather(value(), fail(), return_exceptions=True)\n    print(results[0])\n    print(type(results[1]).__name__)\nasyncio.run(main())\n"
+  answer: '3
+
+    ValueError'
+  explanation: gather 聚合结果并保留输入顺序，默认传播异常不等于同组其他任务都停止。允许部分成功时逐项检查异常；需要共同生命周期时使用任务组或明确取消等待。验证应保持事件循环运行，观察剩余任务，而不只看脚本退出。
+  id: gather-errors-output
+  topicId: gather-errors
+- type: debug
+  prompt: 批处理把所有结果当数字求和，失败项为什么导致第二次异常？
+  code: 'results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    total = sum(results)'
+  rubric:
+  - 区分子任务失败、gather 取消与运行器退出清理
+  - 逐项建立成功失败结果并明确剩余任务的生命周期
+  explanation: 在捕获异常后才对已经完成的 gather 调用 cancel，不一定会取消那些仍运行的任务。若用独立任务管理，应保存引用并明确取消和等待。asyncio.run 退出时的清理可能让小演示看起来“gather 自动取消了其他任务”，但那是顶层运行器结束造成的，不能据此推断长期服务行为。
+  id: gather-errors-debug
+  topicId: gather-errors
+- type: oral
+  prompt: 为什么短脚本中看到剩余任务被取消，不足以证明 gather 具有失败全取消语义？
+  rubric:
+  - 区分子任务失败、gather 取消与运行器退出清理
+  - 逐项建立成功失败结果并明确剩余任务的生命周期
+  - gather 聚合结果并保留输入顺序，默认传播异常不等于同组其他任务都停止。允许部分成功时逐项检查异常；需要共同生命周期时使用任务组或明确取消等待。验证应保持事件循环运行，观察剩余任务，而不只看脚本退出。
+  explanation: 批量查询允许部分失败时，可以使用 return_exceptions=True 汇总，再把每项转换成清晰的成功或失败记录。结果应携带输入 ID，避免排序或过滤后失去对应关系。任务之间具有共同成功条件时，TaskGroup 的失败取消边界通常更直接，选择依据是业务生命周期而非哪个函数名字熟悉。
+  id: gather-errors-oral
+  topicId: gather-errors

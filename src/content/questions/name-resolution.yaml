@@ -1,0 +1,42 @@
+topicId: name-resolution
+questions:
+- type: mcq
+  prompt: 函数内先读取 x 再执行 x = 1，且没有 global/nonlocal，可能发生什么？
+  choices:
+  - id: a
+    text: 读取自动回退到模块 x 且保证成功
+  - id: b
+    text: x 被视为局部并在读取时报未绑定
+  - id: c
+    text: 赋值只影响赋值语句后面的作用域
+  correct: b
+  explanation: 常见名称查找依次考虑局部、外层函数、模块全局和内置命名空间，但首先要确定这个名称属于哪个作用域。编译函数体时看到对名称赋值，通常就把它判定为局部变量，而不是运行到那一行后才改变查找规则。因此前面一句 print(x) 也可能无法读取模块中的 x。
+  id: name-resolution-mcq
+  topicId: name-resolution
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "value = 10\ndef outer():\n    value = 2\n    def inc():\n        nonlocal value\n        value += 1\n        return value\n    return inc\ncounter = outer()\nprint(counter(), counter())\nprint(value)\n"
+  answer: '3 4
+
+    10'
+  explanation: 变量查找前先看绑定规则。函数中的赋值通常使名称在整个函数体内成为局部，先读后赋值就可能报错。修改对象与重绑名字不同；我会明确状态归属，必要时使用 nonlocal，并尽量减少模块全局状态。
+  id: name-resolution-output
+  topicId: name-resolution
+- type: debug
+  prompt: 模块已有 count，函数为什么仍报 UnboundLocalError？
+  code: "count = 1\ndef increment():\n    count += 1\n    return count\nincrement()"
+  rubric:
+  - 说明赋值对整个函数体局部名称判定的影响
+  - 明确状态所属作用域，使用参数对象或合适的绑定声明
+  explanation: LEGB 是常用解释框架，但类体、推导式和特殊语法有自己的细节，不能机械套用。类体中的名称不是方法函数的普通闭包变量；方法通常通过 self 或类引用访问字段。不要用覆盖内置名称的变量名，例如 list，会让后续调用看起来像内置函数失效，实际只是名称被重新绑定。
+  id: name-resolution-debug
+  topicId: name-resolution
+- type: oral
+  prompt: 闭包里 append 列表与给变量重新赋值，对 nonlocal 的需求有何不同？
+  rubric:
+  - 说明赋值对整个函数体局部名称判定的影响
+  - 明确状态所属作用域，使用参数对象或合适的绑定声明
+  - 变量查找前先看绑定规则。函数中的赋值通常使名称在整个函数体内成为局部，先读后赋值就可能报错。修改对象与重绑名字不同；我会明确状态归属，必要时使用 nonlocal，并尽量减少模块全局状态。
+  explanation: 闭包需要重新绑定外层函数的计数值时，可以用 nonlocal；只是修改外层列表内容则不一定需要，因为 append 没有重新绑定名称。模块级可变状态会增加测试耦合，常见替代是显式传入依赖或封装状态对象。global 只表示当前模块的命名空间，不表示所有模块共享一个同名变量。
+  id: name-resolution-oral
+  topicId: name-resolution

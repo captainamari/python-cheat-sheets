@@ -9,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 class ExampleTests(unittest.TestCase):
     def test_published_outputs(self):
         examples = sorted((ROOT / 'examples').glob('*.py'))
-        self.assertGreaterEqual(len(examples), 12)
+        topics = sorted((ROOT / 'src/content/topics').glob('*.md'))
+        self.assertEqual(len(topics), 60)
+        self.assertEqual(len(examples), len(topics))
         for example in examples:
             with self.subTest(example=example.name):
                 result = subprocess.run([sys.executable, '-I', str(example)], capture_output=True, text=True, timeout=8)

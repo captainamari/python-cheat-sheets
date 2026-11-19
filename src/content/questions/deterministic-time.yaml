@@ -1,0 +1,46 @@
+topicId: deterministic-time
+questions:
+- type: mcq
+  prompt: 验证截止时间恰好到达的边界，哪种方式更稳定？
+  choices:
+  - id: a
+    text: sleep 一个很小的时间然后猜调度已经完成
+  - id: b
+    text: 依赖 CI 机器与本地运行速度完全一致
+  - id: c
+    text: 注入时钟并直接设为截止值
+  correct: c
+  explanation: 测试先 sleep 再检查时间条件，会把正确性绑定到调度、机器负载与计时精度。若逻辑接受 now 函数，就能直接控制时间前进，准确覆盖截止之前、恰好截止与超过截止。等待动作也可以抽象为可替换函数，使重试测试观察计划而不实际耗时。
+  id: deterministic-time-mcq
+  topicId: deterministic-time
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "def expired(deadline, now):\n    return now() >= deadline\nclock = [9]\nprint(expired(10, lambda: clock[0]))\nclock[0] = 10\nprint(expired(10, lambda: clock[0]))\n"
+  answer: 'False
+
+    True'
+  explanation: 我把时钟和等待策略显式传入，单元测试精确推进时间并断言边界。经过时长用单调时钟，业务时间点用明确时区。线程启动靠同步信号而非 sleep，真实计时只留给需要验证调度与 I/O 的集成层。
+  id: deterministic-time-output
+  topicId: deterministic-time
+- type: debug
+  prompt: 测试偶发失败又很慢，如何改造时间依赖？
+  code: 'cache.put(''key'', ''value'', ttl=1)
+
+    time.sleep(1)
+
+    assert cache.get(''key'') is None'
+  rubric:
+  - 区分单调经过时长与有时区的业务时间点
+  - 注入时钟测试截止前、恰好截止和截止后，移除猜测性 sleep
+  explanation: 全局打补丁修改 time.time 可能影响同一进程的其他测试或依赖，而且不一定覆盖模块已经绑定的别名。依赖注入让边界更清楚。虚拟时钟也不能完全代替真实集成测试，底层 I/O 超时和调度行为仍需要适量实测，但不应让所有单元测试都承担这些不确定性。
+  id: deterministic-time-debug
+  topicId: deterministic-time
+- type: oral
+  prompt: 可控时钟能替代哪些测试，哪些真实 I/O 或调度行为仍要集成验证？
+  rubric:
+  - 区分单调经过时长与有时区的业务时间点
+  - 注入时钟测试截止前、恰好截止和截止后，移除猜测性 sleep
+  - 我把时钟和等待策略显式传入，单元测试精确推进时间并断言边界。经过时长用单调时钟，业务时间点用明确时区。线程启动靠同步信号而非 sleep，真实计时只留给需要验证调度与 I/O 的集成层。
+  explanation: 缓存有效期可以记录单调时钟的截止点，但这种数值通常不适合跨进程持久化。业务提醒时间则需要可解释的时间点和用户时区。测试应先明确需求是经过十秒还是当地明天九点，再选择时钟模型。多线程协调用 Event 或 Barrier 等信号，比估计某个线程应该在多少毫秒内启动更稳定。
+  id: deterministic-time-oral
+  topicId: deterministic-time

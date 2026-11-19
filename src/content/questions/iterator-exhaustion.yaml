@@ -1,0 +1,58 @@
+topicId: iterator-exhaustion
+questions:
+- type: mcq
+  prompt: 为什么第二次 list(it) 可能得到空列表？
+  choices:
+  - id: a
+    text: 迭代器的位置已经被第一次消费推进到末尾
+  - id: b
+    text: list 会清空原始列表中的所有元素
+  - id: c
+    text: 每个可迭代对象最多只能创建一次迭代器
+  correct: a
+  explanation: iter(obj) 获取迭代器，next(it) 获取下一项，结束时抛出 StopIteration。列表本身可多次产生独立迭代器，而生成器对象通常既是可迭代对象也是迭代器，iter(g) 返回它自己。for 循环只是消费协议，不会替调用者复制输入或重置当前位置。
+  id: iterator-exhaustion-mcq
+  topicId: iterator-exhaustion
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'values = [1, 2, 3]
+
+    it = iter(values)
+
+    print(next(it))
+
+    print(list(it))
+
+    print(list(it))
+
+    print(list(values))
+
+    '
+  answer: '1
+
+    [2, 3]
+
+    []
+
+    [1, 2, 3]'
+  explanation: 我区分数据容器和带游标的迭代器。迭代器通常只能向前消费，再次 list 得到空并不代表原数据一开始为空。接口应声明消费语义，测试用生成器而不只用列表，避免多次遍历的问题被列表掩盖。
+  id: iterator-exhaustion-output
+  topicId: iterator-exhaustion
+- type: debug
+  prompt: 检查完条数后导出为空，问题出在哪里？
+  code: "def export(rows):\n    count = sum(1 for _ in rows)\n    return count, list(rows)\nprint(export(iter([1, 2])))"
+  rubric:
+  - 区分可迭代对象与保存消费位置的迭代器
+  - 改成单遍处理或有容量约束的缓存，并用生成器验证
+  explanation: 把 Iterable 标注当成可无限重复遍历的保证是不准确的。itertools.tee 可以拆出多个逻辑迭代器，但较慢的一支会导致内部缓存保留数据，分叉速度差很大时内存仍会增长。对大流而言，重新获取数据、单遍聚合或主动落盘可能比盲目复制更合适。
+  id: iterator-exhaustion-debug
+  topicId: iterator-exhaustion
+- type: oral
+  prompt: 流式接口如何在不丢数据的前提下检查首项并继续消费？
+  rubric:
+  - 区分可迭代对象与保存消费位置的迭代器
+  - 改成单遍处理或有容量约束的缓存，并用生成器验证
+  - 我区分数据容器和带游标的迭代器。迭代器通常只能向前消费，再次 list 得到空并不代表原数据一开始为空。接口应声明消费语义，测试用生成器而不只用列表，避免多次遍历的问题被列表掩盖。
+  explanation: 验证函数如果先调用 any 或 sum 探查迭代器，再把原对象交给业务处理，前面的元素可能已经消失。设计流式接口时要在类型与文档中说明会消费输入；需要先检查再处理时，可以把检查合并进一次遍历，或使用首项缓存和 chain 把已取出的元素接回流。
+  id: iterator-exhaustion-oral
+  topicId: iterator-exhaustion

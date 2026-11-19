@@ -1,0 +1,42 @@
+topicId: special-methods
+questions:
+- type: mcq
+  prompt: len(obj) 对自定义对象的隐式特殊方法查找通常在哪里进行？
+  choices:
+  - id: a
+    text: 对象的类型上
+  - id: b
+    text: 仅在实例 __dict__ 中
+  - id: c
+    text: 只在 __getattr__ 的返回值中
+  correct: a
+  explanation: len、迭代和运算符通过对应特殊方法参与语言协议。许多隐式操作会绕过实例字典和普通属性查找，从对象所属类型寻找实现。因此为某个实例动态放入 __len__ 函数，可以让显式属性调用成功，却不会自然让该对象获得长度协议。这个规则使语言级操作拥有一致的类型行为。
+  id: special-methods-mcq
+  topicId: special-methods
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "class Box:\n    def __len__(self): return 3\nb = Box()\nb.__len__ = lambda: 9\nprint(b.__len__())\nprint(len(b))\n"
+  answer: '9
+
+    3'
+  explanation: 特殊方法描述的是类型参与语言操作的方式，隐式调用通常查找类型而不是实例字段。实现包装器时我明确声明所支持的协议，并使用真实语法测试。普通属性转发与协议转发需要分别设计。
+  id: special-methods-output
+  topicId: special-methods
+- type: debug
+  prompt: 代理把所有属性都转发了，为什么 len(proxy) 仍可能报错？
+  code: "class Proxy:\n    def __init__(self, target): self.target = target\n    def __getattr__(self, name): return getattr(self.target, name)\np = Proxy([1, 2])\nprint(len(p))"
+  rubric:
+  - 区分普通属性访问与隐式特殊方法查找
+  - 在类上实现所需协议并通过 len、迭代等真实入口测试
+  explanation: __getattr__ 能处理部分缺失的普通属性，但不足以透明代理所有特殊方法。__len__ 返回值也要满足协议要求，例如非负整数；方法名字拼写正确并不意味着返回值合法。若类型语义不适合长度，例如无限流，就不应为了适配某个调用者而伪造长度，应改用更明确的接口。
+  id: special-methods-debug
+  topicId: special-methods
+- type: oral
+  prompt: 设计透明代理时，为什么单独实现 __getattr__ 往往不够？
+  rubric:
+  - 区分普通属性访问与隐式特殊方法查找
+  - 在类上实现所需协议并通过 len、迭代等真实入口测试
+  - 特殊方法描述的是类型参与语言操作的方式，隐式调用通常查找类型而不是实例字段。实现包装器时我明确声明所支持的协议，并使用真实语法测试。普通属性转发与协议转发需要分别设计。
+  explanation: 封装集合、代理对象或测试替身时，不能只转发普通属性。需要实现的协议应逐个列出，例如 __iter__、__len__、__getitem__、__enter__ 和 __exit__。测试应从用户真正调用的语法入口进行，如 list(wrapper)、with wrapper 或 len(wrapper)，而不只调用内部方法。
+  id: special-methods-oral
+  topicId: special-methods

@@ -1,0 +1,40 @@
+topicId: taskgroup-failures
+questions:
+- type: mcq
+  prompt: TaskGroup 中一个任务发生普通异常后，通常怎样处理其余运行任务？
+  choices:
+  - id: a
+    text: 请求取消并等待它们完成清理
+  - id: b
+    text: 任由它们无限运行且立即丢弃引用
+  - id: c
+    text: 自动回滚它们已经完成的数据库写入
+  correct: a
+  explanation: async with TaskGroup 的退出点是生命周期边界，进入其中创建的任务不会在正常退出后继续游离运行。某个任务失败时，其他仍运行的任务被请求取消，组等待它们完成清理，然后传播收集到的异常。多个任务可能几乎同时失败，所以调用方不能假定始终只有一个异常对象。
+  id: taskgroup-failures-mcq
+  topicId: taskgroup-failures
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import asyncio\nasync def fail():\n    raise ValueError('bad input')\nasync def main():\n    try:\n        async with asyncio.TaskGroup() as group:\n            group.create_task(fail())\n    except* ValueError as errors:\n        print(len(errors.exceptions))\nasyncio.run(main())\n"
+  answer: '1'
+  explanation: TaskGroup 管的是一组任务何时结束和如何传播失败。非取消异常会触发同组取消与等待清理，多个错误以异常组呈现。我先判断是否允许部分成功，再选择内部结果化还是组级失败，并验证取消后的资源释放。
+  id: taskgroup-failures-output
+  topicId: taskgroup-failures
+- type: debug
+  prompt: 任务组已结束但外部写入仍存在，错误期待在哪里？
+  code: "async def save(store):\n    await store.write('created')\n    raise ValueError('later failure')\n# 调用方假设 TaskGroup 会自动撤销 write"
+  rubric:
+  - 说明任务组取消等待与异常组传播的生命周期
+  - 把外部写入事务或补偿独立设计，测试失败后的实际状态
+  explanation: except* 按异常组内的异常类型匹配，可以分别处理已知失败并让其余失败继续传播。不要把所有 ExceptionGroup 都转成空列表，否则真实程序错误也被当作部分结果。TaskGroup 不会回滚已经完成的外部写入，结构化任务生命周期与数据库事务原子性是两种不同保证。
+  id: taskgroup-failures-debug
+  topicId: taskgroup-failures
+- type: oral
+  prompt: 哪些请求适合 TaskGroup，哪些部分成功任务需要显式结果模型？
+  rubric:
+  - 说明任务组取消等待与异常组传播的生命周期
+  - 把外部写入事务或补偿独立设计，测试失败后的实际状态
+  - TaskGroup 管的是一组任务何时结束和如何传播失败。非取消异常会触发同组取消与等待清理，多个错误以异常组呈现。我先判断是否允许部分成功，再选择内部结果化还是组级失败，并验证取消后的资源释放。
+  explanation: 一个请求并发读取多个必要数据源时，任一失败可能使后续拼装失去意义，此时任务组比零散 create_task 更容易管理。清理代码使用 try/finally，取消异常通常应继续传播。业务上允许部分成功的批处理则需要在任务内部把预期失败转换为结果，而不是让所有预期错误都触发全组终止。
+  id: taskgroup-failures-oral
+  topicId: taskgroup-failures

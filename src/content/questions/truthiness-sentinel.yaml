@@ -1,0 +1,44 @@
+topicId: truthiness-sentinel
+questions:
+- type: mcq
+  prompt: 需要保留合法的 0，仅在 None 时补默认值，应使用哪种判断？
+  choices:
+  - id: a
+    text: value is None
+  - id: b
+    text: not value
+  - id: c
+    text: value or default
+  correct: a
+  explanation: if 和 bool 使用对象的真值协议：优先 __bool__，否则尝试 __len__，都未定义时一般为真。and 与 or 返回某个操作数，而不一定返回布尔值。value or default 的含义是选择一个真值操作数，并不是只在参数未提供时补默认值。示例中的零会被 or 替换，而显式 None 判断保留零。
+  id: truthiness-sentinel-mcq
+  topicId: truthiness-sentinel
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "def limit(value=None):\n    return 20 if value is None else value\nprint(0 or 20)\nprint(limit(0), limit())\nprint([] or ['fallback'])\n"
+  answer: '20
+
+    0 20
+
+    [''fallback'']'
+  explanation: 我先定义缺失和空值的语义，再选择条件。None 哨兵用 is None，自定义哨兵用身份比较，容器是否有元素可以用真假值。or 返回操作数，会覆盖合法的零，因此不适合作为所有配置字段的默认值逻辑。
+  id: truthiness-sentinel-output
+  topicId: truthiness-sentinel
+- type: debug
+  prompt: 接口允许重试零次，为什么下列代码仍会重试三次？
+  code: "def retries(value=None):\n    return value or 3\nprint(retries(0))"
+  rubric:
+  - 区分缺失值和合法假值的接口语义
+  - 改用明确哨兵并测试 None、0 和正常正数
+  explanation: 不要用 if data 判断网络请求是否成功：合法返回体也可能为空。也不要让自定义 __bool__ 暗中发起昂贵查询，调用者可能在日志或断言里无意触发它。对于数组等不提供单一真值的对象，应明确选择全部、任意或元素个数。真值判断是一种协议，不是所有对象共有的业务成功定义。
+  id: truthiness-sentinel-debug
+  topicId: truthiness-sentinel
+- type: oral
+  prompt: 当 None 和空列表都有业务含义时，如何设计参数缺省规则？
+  rubric:
+  - 区分缺失值和合法假值的接口语义
+  - 改用明确哨兵并测试 None、0 和正常正数
+  - 我先定义缺失和空值的语义，再选择条件。None 哨兵用 is None，自定义哨兵用身份比较，容器是否有元素可以用真假值。or 返回操作数，会覆盖合法的零，因此不适合作为所有配置字段的默认值逻辑。
+  explanation: 分页接口可能允许 limit=0 表示不读取，配置中的空列表可能表示禁用全部目标。如果解析层把这些值替换成默认配置，调用方的明确选择就消失了。应先区分字段是否出现，再检查类型和取值范围。None 也有业务含义时，用模块级 object() 作为缺省标记，调用函数时按 is 判断。
+  id: truthiness-sentinel-oral
+  topicId: truthiness-sentinel

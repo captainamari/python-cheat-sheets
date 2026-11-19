@@ -1,0 +1,42 @@
+topicId: descriptor-precedence
+questions:
+- type: mcq
+  prompt: 默认属性读取时，哪一项通常优先于实例字典？
+  choices:
+  - id: a
+    text: 只有 __get__ 的非数据描述符
+  - id: b
+    text: 任意普通类属性
+  - id: c
+    text: 数据描述符
+  correct: c
+  explanation: 类属性的类型如果实现 __get__，就可以参与读取协议；实现 __set__ 或 __delete__ 的描述符属于数据描述符。通常的实例读取先处理数据描述符，再看实例字典，然后处理非数据描述符及普通类属性。普通函数是非数据描述符，绑定成方法的过程也依赖这个协议。
+  id: descriptor-precedence-mcq
+  topicId: descriptor-precedence
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "class Model:\n    @property\n    def value(self):\n        return 7\nm = Model()\nm.__dict__['value'] = 99\nprint(m.value)\nprint(m.__dict__['value'])\n"
+  answer: '7
+
+    99'
+  explanation: 描述符是类属性参与属性访问的协议，关键区别是数据描述符优先于实例字典，非数据描述符可能被遮盖。property 用它控制读取和赋值。我会验证实例同名字段、只读属性与 setter 的异常，而不只测试正常读取。
+  id: descriptor-precedence-output
+  topicId: descriptor-precedence
+- type: debug
+  prompt: 给属性赋值导致递归，setter 应怎样调整？
+  code: "class Model:\n    @property\n    def value(self): return self._value\n    @value.setter\n    def value(self, value): self.value = value"
+  rubric:
+  - 区分数据描述符与非数据描述符的访问优先级
+  - setter 写入不同的底层属性并验证校验和只读边界
+  explanation: 只有 getter 的 property 仍然属于数据描述符，它拒绝赋值的行为不能让实例字典轻易覆盖。相反，只有 __get__ 的自定义描述符可以被同名实例字段遮盖。上面的次序描述的是默认属性访问；重写 __getattribute__ 会改变行为，但也更容易引入递归和意料之外的性能成本。
+  id: descriptor-precedence-debug
+  topicId: descriptor-precedence
+- type: oral
+  prompt: 为什么只读 property 不能简单通过设置同名实例字段覆盖？
+  rubric:
+  - 区分数据描述符与非数据描述符的访问优先级
+  - setter 写入不同的底层属性并验证校验和只读边界
+  - 描述符是类属性参与属性访问的协议，关键区别是数据描述符优先于实例字典，非数据描述符可能被遮盖。property 用它控制读取和赋值。我会验证实例同名字段、只读属性与 setter 的异常，而不只测试正常读取。
+  explanation: 属性校验、ORM 字段和延迟加载都可以用描述符统一行为。property 能保留 obj.value 的访问形式，同时在 getter 或 setter 里增加计算或校验。设计时要把实际数据存到不同的底层名称，否则 setter 再写同名属性会递归调用自己。直接写 __dict__ 可能绕过业务校验，因此不应成为公开接口。
+  id: descriptor-precedence-oral
+  topicId: descriptor-precedence

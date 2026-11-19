@@ -1,0 +1,44 @@
+topicId: slots-layout
+questions:
+- type: mcq
+  prompt: 关于 __slots__，哪项描述准确？
+  choices:
+  - id: a
+    text: 所有子类都自动禁止新增属性
+  - id: b
+    text: 每个槽位会自动进行类型校验
+  - id: c
+    text: 已有槽位仍可重新赋值
+  correct: c
+  explanation: 默认用户类的实例通常用字典存放动态属性，slots 则为固定字段建立对应描述符。未声明的属性通常无法直接新增，但已有槽位仍可赋新值。是否存在 __dict__ 还取决于基类、子类声明和是否显式包含该槽位，因此不能仅检查一个类写了 slots 就推断所有实例的存储结构。
+  id: slots-layout-mcq
+  topicId: slots-layout
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "class Point:\n    __slots__ = ('x',)\np = Point()\np.x = 1\np.x = 2\nprint(p.x)\nprint(hasattr(p, '__dict__'))\ntry:\n    p.y = 3\nexcept AttributeError:\n    print('no y')\n"
+  answer: '2
+
+    False
+
+    no y'
+  explanation: slots 主要控制属性存储与动态扩展，常用于大量固定结构对象。它不等于不可变，也不会自动约束整个继承链。我会确认字典、弱引用和工具兼容性，再以同样负载比较内存与访问行为。
+  id: slots-layout-output
+  topicId: slots-layout
+- type: debug
+  prompt: 为什么子类实例仍然可以新增 other 属性？
+  code: "class Base:\n    __slots__ = ('x',)\nclass Child(Base):\n    pass\nc = Child()\nc.other = 1"
+  rubric:
+  - 说明 slots 控制属性存储而非不可变或类型安全
+  - 检查继承链与实例字典，必要时为子类声明 slots
+  explanation: 子类如果不声明 slots，可能重新获得实例字典。slots 不负责类型检查、访问权限或线程安全；字段声明后仍然可以保存不同类型的值。sys.getsizeof 单次结果通常只包含对象直接占用，不足以完整比较深层结构，应配合批量实例和分配快照观察实际内存变化。
+  id: slots-layout-debug
+  topicId: slots-layout
+- type: oral
+  prompt: 什么时候值得使用 slots，如何验证内存收益而不是只猜测？
+  rubric:
+  - 说明 slots 控制属性存储而非不可变或类型安全
+  - 检查继承链与实例字典，必要时为子类声明 slots
+  - slots 主要控制属性存储与动态扩展，常用于大量固定结构对象。它不等于不可变，也不会自动约束整个继承链。我会确认字典、弱引用和工具兼容性，再以同样负载比较内存与访问行为。
+  explanation: 大量短生命周期记录具有固定字段时，slots 可能降低属性存储开销。采用之前应检查序列化、调试、动态打补丁和弱引用需求。需要弱引用的槽位类通常要显式包含 __weakref__，除非它已由继承提供。面向少量配置对象时，灵活性和可维护性可能比小幅内存差异更重要。
+  id: slots-layout-oral
+  topicId: slots-layout

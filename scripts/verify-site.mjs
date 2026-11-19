@@ -36,7 +36,11 @@ for (const file of html) {
   }
 }
 const topics = html.filter((f) => f.includes(`${path.sep}topics${path.sep}`));
-if (topics.length !== 12) errors.push(`S1 预计 12 个知识页面，实际 ${topics.length}`);
+const expectedTopics = (await readdir('src/content/topics')).filter((f) =>
+  f.endsWith('.md'),
+).length;
+if (topics.length !== expectedTopics)
+  errors.push(`预计 ${expectedTopics} 个知识页面，实际 ${topics.length}`);
 for (const file of topics) {
   const text = await readFile(file, 'utf8');
   if (
@@ -48,4 +52,6 @@ for (const file of topics) {
 }
 if (!files.some((f) => f.endsWith('pagefind.js'))) errors.push('搜索索引未构建');
 if (errors.length) throw Error(errors.join('\n'));
-console.log(`静态验收通过：${html.length} 个 HTML 页面，12 个知识点，内部链接与资源路径有效。`);
+console.log(
+  `静态验收通过：${html.length} 个 HTML 页面，${topics.length} 个知识点，内部链接与资源路径有效。`,
+);

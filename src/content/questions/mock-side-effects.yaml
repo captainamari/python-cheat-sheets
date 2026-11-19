@@ -1,0 +1,42 @@
+topicId: mock-side-effects
+questions:
+- type: mcq
+  prompt: 配置 side_effect=[TimeoutError(), "ok"] 后前两次调用会怎样？
+  choices:
+  - id: a
+    text: 两次都返回同一个异常对象而不抛出
+  - id: b
+    text: 第一次抛超时，第二次返回 ok
+  - id: c
+    text: 只执行一次调用并自动完成内部重试
+  correct: b
+  explanation: Mock 的 side_effect 可以是异常、可调用函数或可迭代序列。序列中的异常项在对应调用时抛出，其余项作为返回值；序列耗尽会产生 StopIteration。这样可以精确构造第一次超时、第二次成功的情境，不依赖真实网络不稳定或耗时等待。
+  id: mock-side-effects-mcq
+  topicId: mock-side-effects
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from unittest.mock import Mock\noperation = Mock(side_effect=[TimeoutError('slow'), 'ok'])\ndef run():\n    for attempt in range(2):\n        try:\n            return operation()\n        except TimeoutError:\n            if attempt == 1:\n                raise\nprint(run())\nprint(operation.call_count)\n"
+  answer: 'ok
+
+    2'
+  explanation: 我用 side_effect 构造失败序列，验证可重试条件、次数上限、等待计划和最终异常。成功路径与永久失败都要覆盖，写请求还检查幂等键稳定。测试控制依赖行为，不等待真实故障随机出现。
+  id: mock-side-effects-output
+  topicId: mock-side-effects
+- type: debug
+  prompt: 无条件重试掩盖了参数错误，应该如何约束策略？
+  code: "def run(operation):\n    for _ in range(3):\n        try: return operation()\n        except Exception: pass\n    return None"
+  rubric:
+  - 用确定失败序列验证重试条件与次数
+  - 只捕获可恢复异常，耗尽时传播失败并验证幂等键
+  explanation: 把所有 Exception 都当可重试错误，会把参数错误、权限失败或程序缺陷重复执行。side_effect 的长度也不应刚好掩盖多余调用：可以显式断言调用数并验证耗尽后的行为。若重试包含随机抖动，注入随机源并测试区间或确定序列，不要用精确墙钟等待来判断策略。
+  id: mock-side-effects-debug
+  topicId: mock-side-effects
+- type: oral
+  prompt: 测试重试机制时，除先失败后成功还必须覆盖哪些路径？
+  rubric:
+  - 用确定失败序列验证重试条件与次数
+  - 只捕获可恢复异常，耗尽时传播失败并验证幂等键
+  - 我用 side_effect 构造失败序列，验证可重试条件、次数上限、等待计划和最终异常。成功路径与永久失败都要覆盖，写请求还检查幂等键稳定。测试控制依赖行为，不等待真实故障随机出现。
+  explanation: 重试函数应接收可替换的等待策略或时钟，测试中记录等待计划，避免真实 sleep。断言必须同时覆盖业务返回值和依赖调用次数，确保失败没有被吞成成功、重试也没有超出上限。对于写操作，还要验证每次重试保留同一个幂等键，而不是不断创建新的逻辑请求。
+  id: mock-side-effects-oral
+  topicId: mock-side-effects

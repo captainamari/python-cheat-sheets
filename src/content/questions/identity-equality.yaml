@@ -1,0 +1,56 @@
+topicId: identity-equality
+questions:
+- type: mcq
+  prompt: 两个独立创建且内容相同的列表，通常满足哪一项？
+  choices:
+  - id: a
+    text: 身份相同，值一定不同
+  - id: b
+    text: 值相等，身份不同
+  - id: c
+    text: 只能使用 is 比较内容
+  correct: b
+  explanation: 每个对象有身份、类型和值。is 比较身份，无法通过类的比较方法重载；== 会进入相等比较协议，可以调用 __eq__，必要时尝试另一方的实现。两个分别构造的列表即使内容相等，也通常是两个对象。列表元素比较继续使用元素自己的相等规则，所以容器相等并不意味着底层引用相同。
+  id: identity-equality-mcq
+  topicId: identity-equality
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'a = [1]
+
+    b = [1]
+
+    c = a
+
+    print(a == b, a is b)
+
+    print(a == c, a is c)
+
+    '
+  answer: 'True False
+
+    True True'
+  explanation: 我用 is 判断对象身份，用 == 判断类型定义的相等关系。例如两个独立空列表相等但不是同一对象；别名同时满足两者。None 和专用哨兵适合身份比较，普通字符串应按值比较。验证共享修改时会同时检查内容和身份。
+  id: identity-equality-output
+  topicId: identity-equality
+- type: debug
+  prompt: 代码希望识别内容为 ready 的动态字符串，为什么判断方式不可靠？
+  code: 'status = ''''.join([''rea'', ''dy''])
+
+    expected = ''ready''
+
+    print(status is expected)'
+  rubric:
+  - 区分对象身份与类型定义的值相等
+  - 将状态值判断改为 == 并使用运行时构造的输入验证
+  explanation: 小整数或字符串可能被解释器复用，某次交互环境里 a is b 为真并不是值比较的保证。也不要把 id 长期保存为数据库主键：对象生命周期结束后，身份值可能被复用。调试共享对象时可以在它们同时存活的范围内使用 is，序列化再反序列化后则不应要求身份保持。
+  id: identity-equality-debug
+  topicId: identity-equality
+- type: oral
+  prompt: 为什么不能把整数缓存现象当作 is 可以替代 == 的依据？
+  rubric:
+  - 区分对象身份与类型定义的值相等
+  - 将状态值判断改为 == 并使用运行时构造的输入验证
+  - 我用 is 判断对象身份，用 == 判断类型定义的相等关系。例如两个独立空列表相等但不是同一对象；别名同时满足两者。None 和专用哨兵适合身份比较，普通字符串应按值比较。验证共享修改时会同时检查内容和身份。
+  explanation: 接口使用 None 表示缺失时，以 value is None 判断最直接。数据同步程序关心两条记录是否表示同一业务实体，则应定义业务键比较，而不是比较内存身份。缓存命中对象和重新查询得到的对象可能有相同字段、不同身份；把 is 当作业务相等会让结果依赖缓存是否开启。
+  id: identity-equality-oral
+  topicId: identity-equality

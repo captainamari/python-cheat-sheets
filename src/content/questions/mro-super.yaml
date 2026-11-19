@@ -1,0 +1,40 @@
+topicId: mro-super
+questions:
+- type: mcq
+  prompt: 在 D(B, C) 的实例上，B 中 super().run() 的查找依据是什么？
+  choices:
+  - id: a
+    text: 实例类型的 MRO 中 B 后面的类
+  - id: b
+    text: 总是 B 定义时直接列出的父类 A
+  - id: c
+    text: 只根据方法名称的字母顺序决定
+  correct: a
+  explanation: Python 使用方法解析顺序组织继承图。调用 super() 时，查找从定义该方法的类之后继续，实际顺序由实例所属类的 MRO 决定。菱形继承中，这使共同祖先能够沿协作链只经过一次。直接点名基类调用会绕开这条链，多个分支各自调用共同祖先时可能重复初始化。
+  id: mro-super-mcq
+  topicId: mro-super
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "class A:\n    def run(self): return ['A']\nclass B(A):\n    def run(self): return ['B'] + super().run()\nclass C(A):\n    def run(self): return ['C'] + super().run()\nclass D(B, C):\n    pass\nprint(D().run())\n"
+  answer: '[''B'', ''C'', ''A'']'
+  explanation: super 表示在 MRO 中接着查找，目标取决于运行时实例的类型。协作式多继承需要统一签名、每层继续调用以及明确终点。我会用调用轨迹确认每个职责执行一次，并在关系不自然时改用组合。
+  id: mro-super-output
+  topicId: mro-super
+- type: debug
+  prompt: 两个分支都直接调用 A.run，为什么破坏协作式继承？
+  code: "class A:\n    def run(self): print('A')\nclass B(A):\n    def run(self): A.run(self)\nclass C(A):\n    def run(self): A.run(self)"
+  rubric:
+  - 通过实例类型的 MRO 解释 super 的下一站
+  - 统一协作签名并验证菱形结构各职责只执行一次
+  explanation: 并不是所有父类方法都承诺协作。第三方基类若从不调用 super，后续链条就可能中断，混入一个类并不会让它自动获得调用机会。也不能随意改变基类排列来修复输出，因为顺序变化可能同时影响其他同名方法。应测试完整继承组合，而非只分别测试每个 mixin。
+  id: mro-super-debug
+  topicId: mro-super
+- type: oral
+  prompt: 给已有继承结构加入 mixin 前，如何确认它能够参与协作调用？
+  rubric:
+  - 通过实例类型的 MRO 解释 super 的下一站
+  - 统一协作签名并验证菱形结构各职责只执行一次
+  - super 表示在 MRO 中接着查找，目标取决于运行时实例的类型。协作式多继承需要统一签名、每层继续调用以及明确终点。我会用调用轨迹确认每个职责执行一次，并在关系不自然时改用组合。
+  explanation: 多个 mixin 为同一操作添加日志、校验或事务时，应设计明确的协作接口。每层处理自己负责的参数，再把剩余参数按约定传下去，最后由终点消费完毕。查看 Type.mro() 能帮助解释实际调用顺序，但不能代替接口设计；职责不清的多重继承常常更适合组合。
+  id: mro-super-oral
+  topicId: mro-super

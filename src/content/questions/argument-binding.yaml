@@ -1,0 +1,42 @@
+topicId: argument-binding
+questions:
+- type: mcq
+  prompt: 希望 timeout 必须按名称传入，应该放在签名的哪里？
+  choices:
+  - id: a
+    text: 斜杠 / 前面
+  - id: b
+    text: 星号 * 后面
+  - id: c
+    text: 任意位置都自动仅关键字
+  correct: b
+  explanation: 调用时，Python 将位置参数与关键字参数绑定到形参；同一个形参收到两份值会报 TypeError。/ 之前的参数不能按名称绑定，* 之后的参数要求明确写出名称。*args 收集额外位置参数，**kwargs 收集额外关键字，但它们不自动保证转发后的调用与下层接口兼容。
+  id: argument-binding-mcq
+  topicId: argument-binding
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import inspect\ndef send(payload, /, *, timeout=3):\n    return payload, timeout\nbound = inspect.signature(send).bind('ok', timeout=5)\nprint(bound.arguments)\nprint(send('ok', timeout=5))\n"
+  answer: '{''payload'': ''ok'', ''timeout'': 5}
+
+    (''ok'', 5)'
+  explanation: 签名是一层可执行的接口约束。数据参数按自然方式传递，易混淆的行为选项使用仅关键字参数。包装器要验证重复和未知参数，业务校验仍独立进行。我会测试合法调用以及重复、缺失和错误传参方式。
+  id: argument-binding-output
+  topicId: argument-binding
+- type: debug
+  prompt: 包装器转发参数时为什么可能抛出重复值错误？
+  code: "def send(payload, *, timeout): return payload\ndef wrapper(payload, **kwargs):\n    return send(payload, timeout=3, **kwargs)\nwrapper('ok', timeout=5)"
+  rubric:
+  - 解释参数绑定、仅位置和仅关键字的限制
+  - 处理转发中的重复键并测试缺失、冲突和合法调用
+  explanation: 把所有参数都塞进 **kwargs 会隐藏接口约束，错误可能一直传到深层才出现。转发时既显式传入 timeout 又保留 kwargs 中同名键，会产生重复值错误。向公共函数新增必填的仅关键字参数也会破坏老调用，不能因为写法更清楚就忽略兼容性。
+  id: argument-binding-debug
+  topicId: argument-binding
+- type: oral
+  prompt: 为长期维护的公共 API 设计签名时，如何兼顾清晰性与兼容性？
+  rubric:
+  - 解释参数绑定、仅位置和仅关键字的限制
+  - 处理转发中的重复键并测试缺失、冲突和合法调用
+  - 签名是一层可执行的接口约束。数据参数按自然方式传递，易混淆的行为选项使用仅关键字参数。包装器要验证重复和未知参数，业务校验仍独立进行。我会测试合法调用以及重复、缺失和错误传参方式。
+  explanation: 库 API 可以用仅位置参数保留将来重命名形参的空间，用仅关键字参数避免 timeout、retry 等开关被一串数字混淆。通用包装器需要检查调用形式时，可以使用 inspect.signature(...).bind，先验证绑定，再调用原函数；不过 bind 只验证参数分配，并不按注解检查类型或业务范围。
+  id: argument-binding-oral
+  topicId: argument-binding

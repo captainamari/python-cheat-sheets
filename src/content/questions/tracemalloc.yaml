@@ -1,0 +1,62 @@
+topicId: tracemalloc
+questions:
+- type: mcq
+  prompt: tracemalloc 快照主要帮助回答哪个问题？
+  choices:
+  - id: a
+    text: 追踪到的 Python 分配来自哪些位置
+  - id: b
+    text: 所有原生内存都由哪个 Python 对象唯一持有
+  - id: c
+    text: 进程 RSS 必须与 Python 当前分配值相等
+  correct: a
+  explanation: tracemalloc 在分配发生时记录追踪信息，快照按文件、行或回溯聚合，比较前后快照可以找到净增长位置。峰值表示追踪区间曾经达到的高点，当前值表示仍被追踪的分配量，两者不同。追踪启动之前已经存在的分配不会自动变成完整的历史记录。
+  id: tracemalloc-mcq
+  topicId: tracemalloc
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'import tracemalloc
+
+    tracemalloc.start()
+
+    before, _ = tracemalloc.get_traced_memory()
+
+    blocks = [bytearray(1024) for _ in range(20)]
+
+    after, peak = tracemalloc.get_traced_memory()
+
+    print(after > before)
+
+    print(peak >= after)
+
+    tracemalloc.stop()
+
+    '
+  answer: 'True
+
+    True'
+  explanation: 我先明确观测口径，再用同负载的快照差分定位增长位置，沿引用关系查持有者。Python 分配、峰值和 RSS 是不同指标。修复后重复相同实验，确认增长受控，并保留版本、负载和测量方法。
+  id: tracemalloc-output
+  topicId: tracemalloc
+- type: debug
+  prompt: 只比较一个列表的 getsizeof，为什么低估了实际数据占用？
+  code: 'import sys
+
+    values = [bytearray(1000) for _ in range(100)]
+
+    print(sys.getsizeof(values))'
+  rubric:
+  - 区分容器直接尺寸、追踪分配与进程 RSS
+  - 采用可重复负载和快照差分，避免断言精确字节数
+  explanation: sys.getsizeof 只看对象直接尺寸，通常不递归计算它引用的所有子对象。RSS 包含更多运行时和原生分配，与 tracemalloc 不一定同步。不要在自动测试里断言某一行精确分配多少字节，版本、分配器和优化都可能影响数值；应断言合理的行为趋势或在基准中记录区间。
+  id: tracemalloc-debug
+  topicId: tracemalloc
+- type: oral
+  prompt: 如何设计一次能区分缓存预热与持续内存泄漏的实验？
+  rubric:
+  - 区分容器直接尺寸、追踪分配与进程 RSS
+  - 采用可重复负载和快照差分，避免断言精确字节数
+  - 我先明确观测口径，再用同负载的快照差分定位增长位置，沿引用关系查持有者。Python 分配、峰值和 RSS 是不同指标。修复后重复相同实验，确认增长受控，并保留版本、负载和测量方法。
+  explanation: 可重复的排查应先预热、建立基线，再运行固定数量请求并比较快照。重点看增长是否随批次数持续线性增加，以及这些对象是否仍有业务持有者。对缓存预热和一次性模块加载要单独解释，不能把任何正差值都定义成泄漏。性能测量也应记录追踪本身带来的额外开销。
+  id: tracemalloc-oral
+  topicId: tracemalloc

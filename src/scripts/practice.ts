@@ -16,16 +16,41 @@ import {
   recordAnswer,
   SESSION_KEY,
   notifyStorage,
+  inReview,
+  type ReviewMode,
 } from '../lib/progress';
 import { url } from '../lib/urls';
 const { topics, questions } = JSON.parse(
   document.getElementById('practice-data')!.textContent!,
 ) as { topics: { id: string; title: string }[]; questions: Question[] };
 const root = document.getElementById('practice-root')!;
-const scope = new URLSearchParams(location.search).get('topic') ?? 'all';
+const params = new URLSearchParams(location.search);
+const modeLabels = {
+  mistakes: '错题复习',
+  reinforce: '开放题巩固',
+  due: '到期复习',
+  bookmarks: '收藏练习',
+};
+const mode = params.get('mode') as ReviewMode | null;
+const single = params.get('question');
+const scope = mode
+  ? `mode:${mode}`
+  : single
+    ? `question:${single}`
+    : (params.get('topic') ?? 'all');
 const topic = topics.find((t) => t.id === scope);
-const pool = scope === 'all' ? questions : questions.filter((q) => q.topicId === scope);
-const byId = new Map(pool.map((q) => [q.id, q]));
+function getPool() {
+  const p = readProgress();
+  return questions.filter((q) =>
+    mode
+      ? Object.hasOwn(modeLabels, mode) && inReview(p, q, mode)
+      : single
+        ? q.id === single
+        : scope === 'all' || q.topicId === scope,
+  );
+}
+let pool = getPool();
+const byId = new Map(questions.map((q) => [q.id, q]));
 const labels = { mcq: '概念选择', output: '代码输出', debug: '排障分析', oral: '面试口述' };
 let session: Session | null = null;
 const e = (tag: string, text?: string, className?: string) => {
@@ -48,7 +73,12 @@ function save() {
   }
 }
 try {
-  session = restoreSession(localStorage.getItem(SESSION_KEY), pool, scope);
+  session = restoreSession(
+    localStorage.getItem(SESSION_KEY),
+    questions,
+    scope,
+    readProgress().generation,
+  );
 } catch {
   notifyStorage('浏览器未允许保存练习，刷新后可能丢失。');
 }
@@ -66,7 +96,13 @@ function heading(text: string) {
   return h;
 }
 function start() {
-  session = createSession(pool, scope, scope === 'all' ? 10 : pool.length);
+  pool = getPool();
+  if (!pool.length) {
+    session = null;
+    return intro();
+  }
+  session = createSession(pool, scope, scope === 'all' || mode ? 10 : pool.length);
+  session.generation = readProgress().generation;
   save();
   renderQuestion();
   focusHeading();
@@ -75,10 +111,25 @@ function intro() {
   root.replaceChildren();
   root.append(
     e('p', '先想，再看答案', 'eyebrow accent'),
-    heading(topic ? '练习这篇' : '用一组练习，检验理解。'),
+    heading(
+      topic
+        ? '练习这篇'
+        : mode && Object.hasOwn(modeLabels, mode)
+          ? modeLabels[mode]
+          : '用一组练习，检验理解。',
+    ),
   );
-  if (!pool.length) {
-    root.append(e('p', '这个知识点不存在或暂无练习。', 'page-intro'), link('返回知识库', ''));
+  if (!pool.length && (!session || session.completed)) {
+    root.append(
+      e(
+        'p',
+        mode
+          ? '当前队列为空。完成练习后，符合条件的题目会出现在这里。'
+          : '这个知识点不存在或暂无练习。',
+        'page-intro',
+      ),
+      link('返回知识库', ''),
+    );
     return;
   }
   root.append(
@@ -118,10 +169,13 @@ function intro() {
         },
       ),
     );
-    actions.append(button('重新开始本轮', start, 'secondary'));
+    if (pool.length) actions.append(button('重新开始本轮', start, 'secondary'));
   } else
     actions.append(
-      button(`开始 ${scope === 'all' ? Math.min(10, pool.length) : pool.length} 道练习`, start),
+      button(
+        `开始 ${scope === 'all' || mode ? Math.min(10, pool.length) : pool.length} 道练习`,
+        start,
+      ),
     );
   root.append(
     actions,
@@ -138,13 +192,32 @@ function submit(answer: Answer, q: Question) {
   if (!session) return;
   const next = answerSession(session, answer);
   if (next === session) return;
+  const progress = readProgress();
+  if ((session.generation ?? 'initial') !== progress.generation) {
+    session = null;
+    notifyStorage('学习记录已在其他页面导入，请重新开始练习。');
+    pool = getPool();
+    return intro();
+  }
+  session.id ??= crypto.randomUUID();
+  next.id = session.id;
+  saveProgress(
+    recordAnswer(progress, q.topicId, answer, Date.now(), q.id, `${session.id}:${q.id}`),
+  );
   session = next;
   save();
-  saveProgress(recordAnswer(readProgress(), q.topicId, answer));
   renderQuestion();
   focusHeading();
 }
 function renderQuestion() {
+  if (session?.id) {
+    const id = session.questionIds[session.index];
+    const saved = readProgress().questions[id];
+    if (!session.answers[id] && saved?.lastAttemptId === `${session.id}:${id}`) {
+      session = answerSession(session, saved.lastAnswer);
+      save();
+    }
+  }
   if (!session) return intro();
   if (session.completed) return result();
   const q = byId.get(session.questionIds[session.index]);
@@ -213,6 +286,7 @@ function renderQuestion() {
     const input = e('textarea', undefined, 'answer-input') as HTMLTextAreaElement;
     input.id = 'output-answer';
     input.rows = 4;
+    input.maxLength = 10000;
     input.spellcheck = false;
     input.disabled = !!answered;
     input.value = answered?.kind === 'objective' ? answered.response : '';
