@@ -1668,3 +1668,220 @@ progress::-moz-progress-bar {
     margin: 0.5rem 0;
   }
 }
+
+/* A reference sheet: index on the left, the rule and executable evidence on the right. */
+.quick-page {
+  padding-block: 44px 80px;
+}
+.quick-page h1 {
+  margin-block: 18px;
+}
+.quick-category-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 25px;
+  margin: 28px 0 36px;
+  font-size: 0.9375rem;
+}
+.quick-category-links a {
+  border-bottom: 1px solid var(--line);
+}
+.quick-filters {
+  display: flex;
+  align-items: end;
+  gap: 15px;
+  flex-wrap: wrap;
+  padding: 24px;
+  background: var(--soft);
+  border-radius: 8px;
+}
+.quick-filters > div {
+  flex: 1;
+  min-width: 130px;
+}
+.quick-filters .quick-search-field {
+  flex: 3;
+  min-width: min(100%, 260px);
+}
+.quick-filters label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.quick-filters input,
+.quick-filters select {
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background-color: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+.quick-filters select {
+  appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23535750' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.quick-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin: 24px 0;
+  flex-wrap: wrap;
+}
+.quick-section {
+  margin-top: 42px;
+}
+.quick-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--ink);
+}
+.quick-row {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.75fr) minmax(0, 1.5fr);
+  gap: 36px;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: 150px;
+}
+.quick-row:target {
+  background: var(--accent-soft);
+  outline: 10px solid var(--accent-soft);
+}
+.quick-topic h3 {
+  font-size: 1.125rem;
+  margin: 10px 0;
+}
+.quick-topic .muted {
+  font-size: 0.875rem;
+}
+.quick-rule {
+  color: var(--ink);
+  line-height: 1.9;
+}
+.quick-example {
+  margin-top: 18px;
+}
+.quick-example summary {
+  cursor: pointer;
+  font-size: 0.9375rem;
+  color: var(--accent);
+}
+.quick-example-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 10px;
+  font-size: 0.875rem;
+}
+.quick-example pre {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: auto;
+  font-size: 0.875rem;
+}
+.quick-example .eyebrow {
+  margin-top: 14px;
+}
+.quick-links {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  font-size: 0.875rem;
+}
+.quick-links a {
+  border-bottom: 1px solid var(--line);
+}
+@media (max-width: 760px) {
+  .header-inner nav {
+    gap: 24px;
+  }
+  .quick-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .quick-filters {
+    padding: 18px;
+  }
+  .quick-search-field {
+    flex-basis: 100% !important;
+  }
+  .quick-section-heading {
+    align-items: start;
+  }
+}
+@media print {
+  body:has(.quick-page) {
+    background: white;
+    color: black;
+    font-size: 11pt;
+  }
+  body:has(.quick-page) .site-header,
+  body:has(.quick-page) .site-footer,
+  .quick-page .breadcrumb,
+  .quick-filters,
+  .quick-category-links,
+  .quick-toolbar .action-group,
+  #quick-action-status,
+  .quick-links,
+  .quick-section-heading > a,
+  .quick-copy {
+    display: none !important;
+  }
+  .quick-page {
+    max-width: none;
+    padding: 0;
+  }
+  .quick-page h1 {
+    font-size: 24pt;
+  }
+  .quick-page .page-intro {
+    font-size: 11pt;
+  }
+  .quick-section {
+    margin-top: 20pt;
+  }
+  .quick-section-heading {
+    break-after: avoid;
+  }
+  .quick-row {
+    display: block;
+    padding: 12pt 0;
+    break-inside: avoid;
+  }
+  .quick-topic h3 {
+    margin: 4pt 0;
+  }
+  .quick-topic .pill,
+  .quick-topic .muted {
+    display: none;
+  }
+  .quick-example:not([open]) {
+    display: none;
+  }
+  .quick-example pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .quick-row:target {
+    background: transparent;
+    outline: none;
+  }
+  .quick-row a {
+    color: black;
+    text-decoration: none;
+  }
+}

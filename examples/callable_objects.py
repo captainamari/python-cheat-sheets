@@ -1,0 +1,8 @@
+class Counter:
+    def __init__(self): self.count = 0
+    def __call__(self):
+        self.count += 1
+        return self.count
+a, b = Counter(), Counter()
+print(a(), a(), b())
+print(callable(a))

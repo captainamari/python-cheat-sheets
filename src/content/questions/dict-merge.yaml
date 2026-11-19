@@ -1,0 +1,60 @@
+topicId: dict-merge
+questions:
+- type: mcq
+  prompt: base | override 对同名嵌套字典默认怎样处理？
+  choices:
+  - id: a
+    text: 自动递归补齐所有缺失子键
+  - id: b
+    text: 使用右侧子对象整体覆盖
+  - id: c
+    text: 始终保留左侧子对象不变
+  correct: b
+  explanation: left | right 产生新字典，同名键采用右侧值；left.update(right) 修改已有字典并返回 None。两者主要处理当前层的键值映射，不会沿嵌套字典继续组合。新字典中的值仍可能与输入共享可变对象，所以顶层是新对象不代表整个配置树完全隔离。
+  id: dict-merge-mcq
+  topicId: dict-merge
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'base = {''db'': {''host'': ''local'', ''timeout'': 3}, ''debug'': False}
+
+    custom = {''db'': {''timeout'': 5}}
+
+    merged = base | custom
+
+    print(merged[''db''])
+
+    print(base[''db''][''host''])
+
+    print(merged[''db''] is custom[''db''])
+
+    '
+  answer: '{''timeout'': 5}
+
+    local
+
+    True'
+  explanation: 字典自带合并是浅层覆盖，我先定义同名键优先级及子结构规则，再决定是否递归。原地 update 与新建 | 的身份语义不同，嵌套对象仍可能共享。测试覆盖冲突、缺失、空值和嵌套字段，而不仅是两个不相交字典。
+  id: dict-merge-output
+  topicId: dict-merge
+- type: debug
+  prompt: 用户只设置超时后默认 host 丢失，合并假设错在哪里？
+  code: 'config = {''db'': {''host'': ''local'', ''timeout'': 3}}
+
+    config.update({''db'': {''timeout'': 8}})
+
+    connect(config[''db''][''host''])'
+  rubric:
+  - 说明浅层覆盖与嵌套对象共享
+  - 明确子配置合并契约并测试冲突、缺失与显式空值
+  explanation: 把 None 当作删除指令会与合法空值冲突，最好使用明确的操作格式或缺失哨兵。update 的返回值不是合并结果，赋给变量会得到 None。多个配置来源还需要保留来源与优先级，出现错误时才能解释某字段最终来自哪里，而不是只给出一个难以追溯的最终字典。
+  id: dict-merge-debug
+  topicId: dict-merge
+- type: oral
+  prompt: 为配置系统设计递归合并时，为什么还要单独规定列表与 None 的语义？
+  rubric:
+  - 说明浅层覆盖与嵌套对象共享
+  - 明确子配置合并契约并测试冲突、缺失与显式空值
+  - 字典自带合并是浅层覆盖，我先定义同名键优先级及子结构规则，再决定是否递归。原地 update 与新建 | 的身份语义不同，嵌套对象仍可能共享。测试覆盖冲突、缺失、空值和嵌套字段，而不仅是两个不相交字典。
+  explanation: 默认配置叠加用户配置时，应在设计中说明覆盖优先级与合并深度。比如用户只给 database.timeout，浅层覆盖可能同时移除默认的 host。可以选择要求完整子对象，或实现有类型约束的递归合并，但列表是替换、拼接还是去重也必须明确，不能凭“深合并”三个字省略规则。
+  id: dict-merge-oral
+  topicId: dict-merge

@@ -1,0 +1,44 @@
+topicId: type-narrowing
+questions:
+- type: mcq
+  prompt: TypeGuard 函数的注解能自动保证什么？
+  choices:
+  - id: a
+    text: 自动把所有列表元素转换为目标类型
+  - id: b
+    text: 自动禁止其他引用修改输入对象
+  - id: c
+    text: 它本身不替代函数体的真实检查
+  correct: c
+  explanation: 普通 bool 返回值只说明真假，TypeGuard[T] 还提供正分支的类型收窄信息。函数体依旧是普通 Python，必须真实验证输入满足 T 的条件。比如确认列表中的每项都是字符串，不能只检查它是列表或非空；空列表是否合格也应与目标类型和业务规则分别判断。
+  id: type-narrowing-mcq
+  topicId: type-narrowing
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from typing import TypeGuard\ndef is_texts(value: object) -> TypeGuard[list[str]]:\n    return isinstance(value, list) and all(isinstance(item, str) for item in value)\nprint(is_texts(['a', 'b']))\nprint(is_texts(['a', 1]))\nprint(is_texts([]))\n"
+  answer: 'True
+
+    False
+
+    True'
+  explanation: 我把 TypeGuard 当作静态工具对真实检查结果的说明。守卫必须完整检查目标条件，业务范围另行校验，可变别名也要考虑。测试覆盖空集合、混合类型和看似合理但不满足契约的输入，避免用注解掩盖检查漏洞。
+  id: type-narrowing-output
+  topicId: type-narrowing
+- type: debug
+  prompt: 守卫让静态检查通过但调用 upper 失败，检查缺了什么？
+  code: "def is_texts(value: object) -> TypeGuard[list[str]]:\n    return isinstance(value, list)\n# ['ok', 1] 也通过了检查"
+  rubric:
+  - 说明静态收窄依赖真实运行时检查
+  - 检查每个元素并覆盖空集合、混合类型与别名修改
+  explanation: 守卫返回真之后，别名仍可能修改原可变对象，使之前成立的条件失效。静态收窄不是锁，也不是不可变快照。TypeGuard 的正负分支语义与较新类型收窄工具并不完全相同，支持 Python 3.12 的项目不能直接假设所有新注解都可用。本文仅依赖 3.12 已支持的 TypeGuard。
+  id: type-narrowing-debug
+  topicId: type-narrowing
+- type: oral
+  prompt: 为什么 TypeGuard 通过之后，可变对象仍然可能不再满足原先的类型条件？
+  rubric:
+  - 说明静态收窄依赖真实运行时检查
+  - 检查每个元素并覆盖空集合、混合类型与别名修改
+  - 我把 TypeGuard 当作静态工具对真实检查结果的说明。守卫必须完整检查目标条件，业务范围另行校验，可变别名也要考虑。测试覆盖空集合、混合类型和看似合理但不满足契约的输入，避免用注解掩盖检查漏洞。
+  explanation: 解析 JSON 后需要把 object 收窄为内部结构时，可以使用小而明确的守卫，随后再转换为领域对象。守卫适合表达可重复的类型判断，不应承担网络请求或修改输入等隐藏副作用。复杂字典约束常常更适合显式解析器，能返回具体错误位置，而不只是一个没有原因的 False。
+  id: type-narrowing-oral
+  topicId: type-narrowing

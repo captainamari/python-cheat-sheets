@@ -1,0 +1,44 @@
+topicId: property-invariants
+questions:
+- type: mcq
+  prompt: 仅验证排序结果单调，为什么不充分？
+  choices:
+  - id: a
+    text: 因为单调性无法用代码判断
+  - id: b
+    text: 因为必须穷举所有整数才能测试
+  - id: c
+    text: 永远返回空列表也能通过，需要元素守恒等性质
+  correct: c
+  explanation: 固定样例验证一个输入的具体结果，不变量描述一族输入与输出之间的关系。排序函数不仅要输出非递减序列，还要保持长度与元素出现次数，否则一个永远返回空列表的实现也能通过“有序”检查。示例枚举小值域内的短序列，同时验证单调性、多重集合守恒和幂等性。这是无需第三方依赖的有限穷举，不应声称覆盖了所有可能输入。
+  id: property-invariants-mcq
+  topicId: property-invariants
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from collections import Counter\nfrom itertools import product\nchecked = 0\nfor size in range(4):\n    for values in product(range(3), repeat=size):\n        result = sorted(values)\n        if Counter(result) != Counter(values):\n            raise AssertionError('lost items')\n        if any(a > b for a, b in zip(result, result[1:])):\n            raise AssertionError('not ordered')\n        if sorted(result) != result:\n            raise AssertionError('not idempotent')\n        checked += 1\nprint(checked)\nprint('properties hold')\n"
+  answer: '40
+
+    properties hold'
+  explanation: 不变量把验收从单个答案扩展为输入输出关系。我会组合互补性质，例如排序的单调性、元素守恒和幂等，同时保留独立样例。明确输入域和前提，控制生成规模，并保存最小失败案例，避免自洽但错误的测试。
+  id: property-invariants-output
+  topicId: property-invariants
+- type: debug
+  prompt: 这个性质测试会接受哪种明显错误的排序实现？怎样补全？
+  code: 'result = sort(values)
+
+    assert all(a <= b for a, b in zip(result, result[1:]))'
+  rubric:
+  - 同时检查单调性、长度或多重集合守恒以及幂等性
+  - 明确输入域与性质前提，结合独立样例并保存最小失败输入
+  explanation: 性质也有前提，例如浮点数运算不总满足实数的结合律，带损转换不能要求完全 round-trip。应把允许的输入域、误差和异常行为写进合同。穷举规模随长度指数增长，测试应选择能暴露边界的小域并控制预算。失败时输出最小输入和违反的性质，方便定位算法问题，而不是只留下“第几次随机失败”。
+  id: property-invariants-debug
+  topicId: property-invariants
+- type: oral
+  prompt: 你会怎样为一个数据转换函数设计不变量测试，并避免自洽的错误？
+  rubric:
+  - 同时检查单调性、长度或多重集合守恒以及幂等性
+  - 明确输入域与性质前提，结合独立样例并保存最小失败输入
+  - 不变量把验收从单个答案扩展为输入输出关系。我会组合互补性质，例如排序的单调性、元素守恒和幂等，同时保留独立样例。明确输入域和前提，控制生成规模，并保存最小失败案例，避免自洽但错误的测试。
+  explanation: 编码解码可以验证 round-trip，规范化函数可验证幂等，分页可以验证合并后无遗漏无重复。但互为逆操作的两个错误实现可能相互抵消，因此仍需独立的已知样例或参考实现。实际项目可以结合性质测试框架生成输入并缩减失败案例；标准库示例先把性质本身写清楚，再决定是否引入工具，避免只堆随机次数而没有正确的判定依据。
+  id: property-invariants-oral
+  topicId: property-invariants

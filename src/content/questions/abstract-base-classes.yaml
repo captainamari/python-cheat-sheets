@@ -1,0 +1,48 @@
+topicId: abstract-base-classes
+questions:
+- type: mcq
+  prompt: 一个类实现了所有抽象方法，仍然不能自动保证什么？
+  choices:
+  - id: a
+    text: 抽象成员集合已允许通常的实例化
+  - id: b
+    text: 可以定义具体子类覆盖抽象方法
+  - id: c
+    text: 方法签名和业务行为符合契约
+  correct: c
+  explanation: 抽象基类由相应元类维护抽象成员集合，具体子类实现后才具备普通实例化条件。抽象方法本身仍可以有实现供协作式 super 调用，所以抽象不等于方法体必须为空。注册虚拟子类会改变 isinstance/issubclass 的关系，但不会让注册类型真正继承基类的属性和方法解析顺序。
+  id: abstract-base-classes-mcq
+  topicId: abstract-base-classes
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from abc import ABC, abstractmethod\nclass Reader(ABC):\n    @abstractmethod\n    def read(self): pass\nclass TextReader(Reader):\n    def read(self): return 'ok'\ntry:\n    Reader()\nexcept TypeError:\n    print('abstract')\nprint(TextReader().read())\n"
+  answer: 'abstract
+
+    ok'
+  explanation: ABC 提供实例化约束和名义接口组织，不负责完整行为验证。我在需要共享实现时使用它，在结构兼容时考虑 Protocol，并为所有实现运行同一组契约测试。签名、返回语义和清理责任都要另外检查。
+  id: abstract-base-classes-output
+  topicId: abstract-base-classes
+- type: debug
+  prompt: 虚拟注册后调用方法仍失败，为什么注册没有提供实现？
+  code: 'class Foreign: pass
+
+    Reader.register(Foreign)
+
+    item = Foreign()
+
+    item.read()'
+  rubric:
+  - 区分抽象实例化约束、虚拟子类关系与实际继承
+  - 为真实适配器实现接口并运行签名和行为契约测试
+  explanation: 子类用不同签名覆盖抽象方法，可能已经解除抽象限制，却在真实调用时失败。动态修改类属性也未必自动刷新抽象状态，需要了解相应更新机制。不要通过虚拟注册来假装一个对象拥有未实现的方法；它更像类型关系声明，而不是自动生成适配器。
+  id: abstract-base-classes-debug
+  topicId: abstract-base-classes
+- type: oral
+  prompt: 何时选择 ABC，何时选择 Protocol，二者都不能替代哪些测试？
+  rubric:
+  - 区分抽象实例化约束、虚拟子类关系与实际继承
+  - 为真实适配器实现接口并运行签名和行为契约测试
+  - ABC 提供实例化约束和名义接口组织，不负责完整行为验证。我在需要共享实现时使用它，在结构兼容时考虑 Protocol，并为所有实现运行同一组契约测试。签名、返回语义和清理责任都要另外检查。
+  explanation: 需要统一生命周期或默认实现的插件体系适合使用 ABC，例如定义 open、read、close 的共同接口。若只需要静态结构兼容，Protocol 可能更轻量。无论哪种方式，都要用契约测试检查输入、异常和资源释放，不能把“可以实例化”当作行为已满足业务要求。
+  id: abstract-base-classes-oral
+  topicId: abstract-base-classes

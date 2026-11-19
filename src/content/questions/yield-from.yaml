@@ -1,0 +1,40 @@
+topicId: yield-from
+questions:
+- type: mcq
+  prompt: 子生成器 return 7 时，yield from 表达式能够获得什么？
+  choices:
+  - id: a
+    text: 必然额外产出一个元素 7
+  - id: b
+    text: 只能得到 None
+  - id: c
+    text: 最终返回值 7
+  correct: c
+  explanation: 子生成器 yield 产生逐项值，return 则结束迭代并把最终结果放进 StopIteration.value。外层 result = yield from child() 可以获取这个结束值，再继续自己的逻辑。普通 for 循环只消费元素，通常不会把子生成器的最终返回值交给循环体，也不会完整表达双向协议转发。
+  id: yield-from-mcq
+  topicId: yield-from
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "def child():\n    yield 'item'\n    return 7\ndef parent():\n    total = yield from child()\n    yield f'total:{total}'\nprint(list(parent()))\n"
+  answer: '[''item'', ''total:7'']'
+  explanation: yield from 委托的是迭代协议，可以接收子生成器的最终返回值，并处理相应交互。选择它之前先区分单纯拼接与双向协作。验证应覆盖正常耗尽、返回值、提前关闭和异常传播，而不只看列表中的元素。
+  id: yield-from-output
+  topicId: yield-from
+- type: debug
+  prompt: 为什么这段 for 转发没有把子生成器的返回统计产出？
+  code: "def parent():\n    for item in child():\n        yield item\n# 调用方期望 child 的 return 值自动成为最后一个元素"
+  rubric:
+  - 区分逐项 yield 与结束时 return 的协议位置
+  - 用 yield from 接收最终值，并测试耗尽和提前关闭
+  explanation: 不要把生成器 return 的值误认为最后一个 yield 元素，list(generator) 不会自动包含它。子迭代器未必支持所有高级交互，向普通列表迭代器 send 非 None 值会遇到协议限制。异步生成器不支持直接使用 yield from，应采用 async for 等异步协议组织转发。
+  id: yield-from-debug
+  topicId: yield-from
+- type: oral
+  prompt: 什么时候 yield from 比普通 for/yield 更合适，异步生成器又有什么限制？
+  rubric:
+  - 区分逐项 yield 与结束时 return 的协议位置
+  - 用 yield from 接收最终值，并测试耗尽和提前关闭
+  - yield from 委托的是迭代协议，可以接收子生成器的最终返回值，并处理相应交互。选择它之前先区分单纯拼接与双向协作。验证应覆盖正常耗尽、返回值、提前关闭和异常传播，而不只看列表中的元素。
+  explanation: 分层解析器或分阶段流式处理可以把一个子流程交给另一个生成器，同时保留最终统计结果。若只是拼接几个普通可迭代对象，itertools.chain 可能更清楚；若需要双向发送或统一关闭，则应认真定义委托关系。调用方还要明确谁负责消费完毕，谁负责提前终止时的资源释放。
+  id: yield-from-oral
+  topicId: yield-from

@@ -1,0 +1,44 @@
+topicId: enum-values
+questions:
+- type: mcq
+  prompt: 普通 Enum 中两个名称使用同一值，默认可能形成什么？
+  choices:
+  - id: a
+    text: 同一成员的别名
+  - id: b
+    text: 两个一定不相等的独立成员
+  - id: c
+    text: 必然在定义时抛出异常
+  correct: a
+  explanation: 枚举成员属于枚举类型，按名字访问和按值构造是两条不同入口，例如 Status["READY"] 与 Status("ready")。默认允许两个名称绑定相同值，后者成为别名，普通迭代通常只列出规范成员。__members__ 则能显示包含别名在内的名称映射，适合检查完整声明。
+  id: enum-values-mcq
+  topicId: enum-values
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from enum import Enum\nclass State(Enum):\n    READY = 'ready'\n    WAITING = 'ready'\n    DONE = 'done'\nprint(State.READY is State.WAITING)\nprint([item.name for item in State])\nprint(State('done').name)\n"
+  answer: 'True
+
+    [''READY'', ''DONE'']
+
+    DONE'
+  explanation: 我用枚举命名有限集合，并明确 name 与 value 的外部稳定性。别名是否允许应在声明时决定，未知输入要显式处理。状态集合与状态迁移分开建模，测试包含序列化、别名和不认识的新值。
+  id: enum-values-output
+  topicId: enum-values
+- type: debug
+  prompt: 枚举值已经来自外部接口，为什么直接改值会破坏兼容？
+  code: "class State(Enum):\n    READY = 'waiting'\n# 历史数据库与客户端仍发送 ready"
+  rubric:
+  - 区分枚举名称、值和重复值别名
+  - 保持协议值稳定并显式处理未知值及状态迁移
+  explanation: 把普通 Enum 与字符串直接比较，不应期待它自动等同于 value。IntEnum、StrEnum 等类型有不同的兼容行为，选择时要考虑是否希望它们与普通基础值混用。unique 能检查重复值，但不能发现所有业务上的非法迁移，也不能自动维护外部协议的历史值。
+  id: enum-values-debug
+  topicId: enum-values
+- type: oral
+  prompt: 为什么 Enum 能限制状态集合，却不能独自保证状态迁移合法？
+  rubric:
+  - 区分枚举名称、值和重复值别名
+  - 保持协议值稳定并显式处理未知值及状态迁移
+  - 我用枚举命名有限集合，并明确 name 与 value 的外部稳定性。别名是否允许应在声明时决定，未知输入要显式处理。状态集合与状态迁移分开建模，测试包含序列化、别名和不认识的新值。
+  explanation: 任务状态、错误类别和配置选项适合枚举，让分支和类型提示更清晰。序列化到 JSON 或数据库时，通常显式选择稳定 value，并把不认识的新值当作兼容性问题处理。枚举只表达有限集合，不自动限制状态迁移；从 running 能否到 cancelled 仍需状态机规则和并发控制。
+  id: enum-values-oral
+  topicId: enum-values

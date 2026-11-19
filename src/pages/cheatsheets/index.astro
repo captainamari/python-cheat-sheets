@@ -1,0 +1,29 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import QuickReference from '../../components/QuickReference.astro';
+import { categories } from '../../lib/catalog';
+import { url } from '../../lib/urls';
+---
+
+<Layout
+  title="Python 速查"
+  description="按问题快速查 Python 规则、可运行示例和边界，支持分类筛选与打印。"
+  active="cheatsheets"
+>
+  <div class="wrap quick-page">
+    <a class="breadcrumb" href={url()}>
+      知识库 / 速查
+    </a>
+    <p class="eyebrow accent">在需要的时候，找到那条规则</p>
+    <h1>先查答案，再看原理。</h1>
+    <p class="page-intro">
+      把日常开发和面试中的关键规则放在一起。查一个 API，展开示例，或回到正文把边界看清楚。
+    </p>
+    <nav class="quick-category-links" aria-label="分类速查">
+      {categories.map((c) => (
+        <a href={url(`cheatsheets/${c.id}/`)}>{c.name}</a>
+      ))}
+    </nav>
+    <QuickReference />
+  </div>
+</Layout>

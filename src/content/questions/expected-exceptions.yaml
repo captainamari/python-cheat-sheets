@@ -1,0 +1,42 @@
+topicId: expected-exceptions
+questions:
+- type: mcq
+  prompt: 异常断言作用域应该怎样安排？
+  choices:
+  - id: a
+    text: 把整个测试文件都放进去
+  - id: b
+    text: 准备工作在外，只包住预期抛错的操作
+  - id: c
+    text: 只创建协程对象，不需要 await
+  correct: b
+  explanation: assertRaises 在上下文内捕获指定类型或其子类，没抛异常或抛出不匹配的异常都会让测试失败。异常实例通过上下文对象的 exception 访问，可以进一步检查错误码、字段或消息。assertRaisesRegex 还用正则匹配文本，特殊字符需要按正则规则处理。示例对解析函数分别验证非法输入和合法输入，避免只有失败分支而不知道正常路径是否可用。
+  id: expected-exceptions-mcq
+  topicId: expected-exceptions
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import unittest\ndef parse_count(text):\n    count = int(text)\n    if count < 0:\n        raise ValueError('count must be non-negative')\n    return count\ncase = unittest.TestCase()\nwith case.assertRaisesRegex(ValueError, 'non-negative') as caught:\n    parse_count('-1')\nprint(type(caught.exception).__name__)\nprint(parse_count('2'))\n"
+  answer: 'ValueError
+
+    2'
+  explanation: 异常测试验证的是错误合同。我缩小上下文到目标调用，检查具体异常和稳定属性，并补正常输入用例。对协程要 await，对生成器要推进迭代；避免宽泛 Exception 或捕获后 pass 把其他错误掩盖掉。
+  id: expected-exceptions-output
+  topicId: expected-exceptions
+- type: debug
+  prompt: 这段测试为什么可能把准备阶段的错误误判为成功？
+  code: "with self.assertRaises(Exception):\n    payload = prepare_payload()\n    service.submit(payload)"
+  rubric:
+  - 将准备步骤移到断言外，指定预期异常及稳定属性
+  - 对异步或惰性行为执行到真正触发异常的位置，并验证正常路径
+  explanation: assertRaises(Exception) 容易把 NameError、类型错误或错误的测试夹具当成成功，因此应尽量指定异常类别。捕获并 pass 也不等价于异常断言，因为没有抛异常时测试仍会通过。异步调用要实际 await，生成器错误可能在迭代时才发生；断言范围必须包含真正触发行为的操作，而不只是创建协程或迭代器。
+  id: expected-exceptions-debug
+  topicId: expected-exceptions
+- type: oral
+  prompt: 你如何验证异常分支，避免测试因无关错误而误通过？
+  rubric:
+  - 将准备步骤移到断言外，指定预期异常及稳定属性
+  - 对异步或惰性行为执行到真正触发异常的位置，并验证正常路径
+  - 异常测试验证的是错误合同。我缩小上下文到目标调用，检查具体异常和稳定属性，并补正常输入用例。对协程要 await，对生成器要推进迭代；避免宽泛 Exception 或捕获后 pass 把其他错误掩盖掉。
+  explanation: 测试业务错误时，把数据准备放在 with 外，只将目标调用放进去。若接口承诺精确的异常类型，可额外检查 type(error) is Expected；通常接受合理子类更灵活。异常消息应该验证稳定且有意义的片段或结构化属性，不应绑定整段堆栈和临时路径。重试机制还需分别验证可重试错误和永久错误，不要用同一个宽泛 Exception 让两者都通过。
+  id: expected-exceptions-oral
+  topicId: expected-exceptions

@@ -60,7 +60,7 @@ test('分类导航、响应式宽度与正文展示', async ({ page }) => {
   if (await page.locator('#category-select').isVisible())
     await page.locator('#category-select').selectOption('runtime');
   else await page.getByRole('button', { name: /运行时/ }).click();
-  await expect(page.locator('[data-topic-card]:visible')).toHaveCount(9);
+  await expect(page.locator('[data-topic-card]:visible')).toHaveCount(19);
   await page.locator('[data-topic-card]:visible').first().click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,

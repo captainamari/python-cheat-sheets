@@ -1,0 +1,42 @@
+topicId: sqlite-pagination
+questions:
+- type: mcq
+  prompt: 为什么按 created 翻页时通常还需要 id？
+  choices:
+  - id: a
+    text: 为相同 created 的记录提供唯一且稳定的顺序
+  - id: b
+    text: 为了让每页的记录数加倍
+  - id: c
+    text: 因为 SQL 不能单独比较时间
+  correct: a
+  explanation: OFFSET 分页先跳过若干条记录再返回下一段，深页会增加扫描工作，前面的插入删除也可能让位置移动。键集分页保存最后一条记录的排序键，例如 (created, id)，下一页用相同顺序和 WHERE (created, id) > (?, ?) 查询。id 作为唯一决胜字段，让同一时间戳下的多条记录仍有确定先后。数据库索引要与过滤条件和排序顺序相配合，游标本身不替代索引。
+  id: sqlite-pagination-mcq
+  topicId: sqlite-pagination
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import sqlite3\ndb = sqlite3.connect(':memory:')\ntry:\n    db.execute('CREATE TABLE t(id INTEGER PRIMARY KEY, created INTEGER NOT NULL)')\n    db.executemany('INSERT INTO t VALUES (?, ?)', [(1, 10), (2, 10), (3, 11)])\n    first = db.execute('SELECT created, id FROM t ORDER BY created, id LIMIT 1').fetchone()\n    rest = db.execute('SELECT id FROM t WHERE (created, id) > (?, ?) ORDER BY created, id LIMIT 2', first).fetchall()\n    print(first)\n    print([row[0] for row in rest])\nfinally:\n    db.close()\n"
+  answer: '(10, 1)
+
+    [2, 3]'
+  explanation: 键集分页依赖稳定排序和复合游标，通常以时间加唯一编号继续查询。它适合顺序加载深列表，但不提供自动快照或任意页跳转。我会验证同时间记录、并发新增、排序字段更新和无效游标。
+  id: sqlite-pagination-output
+  topicId: sqlite-pagination
+- type: debug
+  prompt: 下面边界会漏掉什么记录？如何修正？
+  code: SELECT id FROM events WHERE created > :last_created ORDER BY created LIMIT 20
+  rubric:
+  - 用时间加唯一编号构造复合排序和游标，覆盖同时间记录
+  - 说明跨请求更新并不自动获得快照一致性
+  explanation: 游标分页不等于跨请求一致快照。排序字段在翻页期间发生变化，记录仍可能重复或遗漏；要按产品需求选择不可变排序键、快照边界或接受实时列表语义。NULL 排序键会带来额外比较规则，最好避免或明确标准化。它也不天然支持任意页码跳转。面试回答应说明适用场景，而不是把 OFFSET 描述成任何时候都不能使用。
+  id: sqlite-pagination-debug
+  topicId: sqlite-pagination
+- type: oral
+  prompt: 游标分页相对于 OFFSET 的收益和限制是什么，怎样设计验证用例？
+  rubric:
+  - 用时间加唯一编号构造复合排序和游标，覆盖同时间记录
+  - 说明跨请求更新并不自动获得快照一致性
+  - 键集分页依赖稳定排序和复合游标，通常以时间加唯一编号继续查询。它适合顺序加载深列表，但不提供自动快照或任意页跳转。我会验证同时间记录、并发新增、排序字段更新和无效游标。
+  explanation: 事件列表可把时间与编号编码成客户端游标，并同时保存筛选条件或验证它们没有变化。示例两条记录时间相同，第一页取其中一条，第二页用复合边界取剩下两条。如果仅使用 created > last_created，另一条同时间记录会被跳过。真实接口还要限制页大小、验证游标格式，并约定升降序；降序时比较方向也要随之调整。
+  id: sqlite-pagination-oral
+  topicId: sqlite-pagination

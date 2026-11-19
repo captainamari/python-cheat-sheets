@@ -1,0 +1,46 @@
+topicId: warnings-policy
+questions:
+- type: mcq
+  prompt: 希望 CI 把指定弃用警告视为失败，可以采用什么策略？
+  choices:
+  - id: a
+    text: 将该类别过滤动作设为 error
+  - id: b
+    text: 全局忽略所有 warning
+  - id: c
+    text: 只查看程序最终退出码且不配置警告
+  correct: a
+  explanation: warnings.warn 创建特定类别的警告，过滤器决定后续行为。DeprecationWarning 等类别在不同执行环境下可能有不同默认可见性，所以“本地没看到”不证明没有警告。simplefilter("error") 可以把命中类别变成异常，让持续集成及时发现已经弃用的接口调用。
+  id: warnings-policy-mcq
+  topicId: warnings-policy
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import warnings\nwith warnings.catch_warnings(record=True) as caught:\n    warnings.simplefilter('always')\n    warnings.warn('old option', DeprecationWarning)\nprint(len(caught))\nprint(caught[0].category.__name__)\n"
+  answer: '1
+
+    DeprecationWarning'
+  explanation: 我把警告用于可继续但需要迁移的情况，把异常用于当前操作无法按契约完成。测试显式捕获或升级指定类别，避免依赖默认可见性。弃用信息要定位到调用者，资源泄漏则同时验证真实关闭行为。
+  id: warnings-policy-output
+  topicId: warnings-policy
+- type: debug
+  prompt: 升级依赖前所有弃用提示都消失，测试配置有什么风险？
+  code: 'import warnings
+
+    warnings.filterwarnings(''ignore'')
+
+    # 全部测试都在这个全局规则下运行'
+  rubric:
+  - 区分警告类别、过滤行为与异常
+  - 只捕获预期警告，指定类别可升级为错误并验证消息定位
+  explanation: 警告过滤状态与并发行为有版本和构建细节，测试不宜在不隔离的并发用例中随意改全局策略。ResourceWarning 的产生还可能依赖对象释放时点，不应只靠垃圾回收碰巧触发来证明清理正确。显式资源关闭测试更直接，警告检查作为补充观察。
+  id: warnings-policy-debug
+  topicId: warnings-policy
+- type: oral
+  prompt: 为什么资源警告只能补充资源清理测试，而不能替代显式关闭验证？
+  rubric:
+  - 区分警告类别、过滤行为与异常
+  - 只捕获预期警告，指定类别可升级为错误并验证消息定位
+  - 我把警告用于可继续但需要迁移的情况，把异常用于当前操作无法按契约完成。测试显式捕获或升级指定类别，避免依赖默认可见性。弃用信息要定位到调用者，资源泄漏则同时验证真实关闭行为。
+  explanation: 公共库宣布参数弃用时，应选择合适类别和 stacklevel，使调用者看到自己的调用位置而不是库内部实现。测试可以用 catch_warnings(record=True) 收集记录，并断言类别与关键消息。应用可在测试环境收紧规则，在生产按既定策略处理，但不能为了安静而无差别屏蔽所有类别。
+  id: warnings-policy-oral
+  topicId: warnings-policy

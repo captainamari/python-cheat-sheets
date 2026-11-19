@@ -1,0 +1,44 @@
+topicId: walrus-binding
+questions:
+- type: mcq
+  prompt: 想让 n 保存长度再比较大小，应采用哪种形式？
+  choices:
+  - id: a
+    text: if (n := len(items)) > 0
+  - id: b
+    text: if n := len(items) > 0 会让 n 始终保存长度
+  - id: c
+    text: if (n == len(items)) > 0
+  correct: a
+  explanation: 赋值表达式将右侧结果绑定到名称，同时把该结果作为表达式的值。例如 if (match := pattern.search(text)) 可以在条件成立后复用匹配对象。括号有时是语法要求，也能明确优先级；若写成 value := expression > 0，名称得到的可能是比较后的布尔值，而不是原始数值。
+  id: walrus-binding-mcq
+  topicId: walrus-binding
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "values = [0, 2, 4]\nif (count := len(values)) > 0:\n    print(count)\nif flag := len(values) > 0:\n    print(type(flag).__name__)\nprint(count, flag)\n"
+  answer: '3
+
+    bool
+
+    3 True'
+  explanation: 我把 := 用于一次求值、就地命名，尤其是匹配和读取循环。括号保证绑定对象清楚，假值语义必须与业务一致。若表达式牵涉多个副作用或跨作用域状态，就拆回普通赋值和判断，让调试路径保持直接。
+  id: walrus-binding-output
+  topicId: walrus-binding
+- type: debug
+  prompt: 后续拿到的是 bool 而不是数量，赋值绑定位置有什么问题？
+  code: "if count := len(items) > 0:\n    save_count(count)"
+  rubric:
+  - 解释赋值表达式的值与比较优先级
+  - 用括号明确绑定并测试零值与正常值的业务语义
+  explanation: 推导式中的赋值表达式具有专门的作用域规则，不能简单按普通循环变量来理解。对需要长期维护的代码，不宜在一个条件里塞多个状态更新。最好的使用点通常是把一个昂贵或有状态的读取结果命名，并在紧邻的代码里使用，而不是让读者回溯几层表达式寻找赋值副作用。
+  id: walrus-binding-debug
+  topicId: walrus-binding
+- type: oral
+  prompt: 何时使用 := 能减少重复，何时应该拆成普通赋值语句？
+  rubric:
+  - 解释赋值表达式的值与比较优先级
+  - 用括号明确绑定并测试零值与正常值的业务语义
+  - 我把 := 用于一次求值、就地命名，尤其是匹配和读取循环。括号保证绑定对象清楚，假值语义必须与业务一致。若表达式牵涉多个副作用或跨作用域状态，就拆回普通赋值和判断，让调试路径保持直接。
+  explanation: 逐块读取文件时，while (chunk := stream.read(size)) 可以同时表达读取与结束条件，避免循环前后重复读取语句。前提是空块确实代表结束，而不是临时没有数据。解析可选字段时，要区别值不存在与合法假值，不能因为使用了 := 就让 0 或空字符串的业务意义消失。
+  id: walrus-binding-oral
+  topicId: walrus-binding

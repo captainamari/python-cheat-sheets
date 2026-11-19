@@ -1,0 +1,50 @@
+topicId: patch-dict-environ
+questions:
+- type: mcq
+  prompt: 模块导入时已把环境变量存到常量，随后 patch.dict 会自动刷新该常量吗？
+  choices:
+  - id: a
+    text: 不会，需要处理配置读取或实际使用对象的边界
+  - id: b
+    text: 会，所有模块常量都会同步
+  - id: c
+    text: 只要 clear=True 就一定会
+  correct: a
+  explanation: os.environ 是进程级映射，赋值会影响同进程中之后读取环境的代码。patch.dict 可以按作用域临时注入键，clear=True 先移除其余条目，退出时恢复原有映射。它适合确保测试不依赖开发机器的默认配置。示例先放入旧值，在内层补丁中修改并增加另一个值，然后观察内层退出恢复旧状态、外层退出恢复真实进程环境。
+  id: patch-dict-environ-mcq
+  topicId: patch-dict-environ
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import os\nfrom unittest.mock import patch\nwith patch.dict(os.environ, {'DEMO_MODE': 'old'}, clear=True):\n    with patch.dict(os.environ, {'DEMO_MODE': 'new', 'EXTRA': 'yes'}):\n        print(os.environ['DEMO_MODE'], os.environ['EXTRA'])\n    print(os.environ['DEMO_MODE'], 'EXTRA' in os.environ)\n    with patch.dict(os.environ, {}, clear=True):\n        print(os.getenv('DEMO_MODE', 'missing'))\n"
+  answer: 'new yes
+
+    old False
+
+    missing'
+  explanation: 环境变量属于进程状态，我用 patch.dict 管理短作用域并恢复原值。先识别配置读取时机，再设计缺失与非法值用例。需要并发隔离时注入独立配置或使用子进程，不能把字典补丁当成线程本地环境。
+  id: patch-dict-environ-output
+  topicId: patch-dict-environ
+- type: debug
+  prompt: 下面测试为什么既可能污染环境，又可能没有影响被测配置？
+  code: 'import settings
+
+    os.environ[''MODE''] = ''test''
+
+    assert settings.MODE == ''test''
+
+    del os.environ[''MODE'']'
+  rubric:
+  - 用 patch.dict 恢复原有环境，明确配置在导入时还是调用时读取
+  - 并发场景注入独立配置，不把进程环境当成线程隔离状态
+  explanation: clear=True 并不适合所有集成测试，它可能删掉 PATH、临时目录或运行时所需配置；只在被测函数的依赖明确时使用。环境变量补丁也不提供线程隔离，另一个线程可能在作用域中读到临时值。并发测试应优先注入独立映射，或者用隔离进程承载环境。用例结束时手工 del 一个键不足以恢复之前已有的值。
+  id: patch-dict-environ-debug
+  topicId: patch-dict-environ
+- type: oral
+  prompt: 如何稳定测试环境变量配置，避免机器依赖和用例之间的污染？
+  rubric:
+  - 用 patch.dict 恢复原有环境，明确配置在导入时还是调用时读取
+  - 并发场景注入独立配置，不把进程环境当成线程隔离状态
+  - 环境变量属于进程状态，我用 patch.dict 管理短作用域并恢复原值。先识别配置读取时机，再设计缺失与非法值用例。需要并发隔离时注入独立配置或使用子进程，不能把字典补丁当成线程本地环境。
+  explanation: 配置解析函数最好接收映射或在明确的初始化阶段读取环境，这样测试可以直接传入最小输入。若模块导入时执行 TOKEN = os.getenv(...)，后续只改 os.environ 不会改变 TOKEN；应补丁实际使用的配置对象，或者调整配置加载边界。必须验证缺失、空字符串、非法整数和合法值，而不是只覆盖一条 happy path。
+  id: patch-dict-environ-oral
+  topicId: patch-dict-environ

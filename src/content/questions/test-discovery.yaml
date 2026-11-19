@@ -1,0 +1,42 @@
+topicId: test-discovery
+questions:
+- type: mcq
+  prompt: 默认 TestLoader 会自动执行 TestCase 中的 helper 方法吗？
+  choices:
+  - id: a
+    text: 会，所有方法都会执行
+  - id: b
+    text: 只要方法里有 assert 就会执行
+  - id: c
+    text: 不会，默认收集 test 前缀方法
+  correct: c
+  explanation: discover 从指定起始目录查找匹配 pattern 的模块，默认文件模式是 test*.py。模块被导入后，加载器从 TestCase 子类中收集名字符合 testMethodPrefix 的方法，默认前缀为 test。文件名和方法名是两道不同的筛选条件，因此文件被找到不代表里面的 check_xxx 会自动执行。示例直接使用加载器收集一个类，展示只执行 test_sum 而忽略 helper。
+  id: test-discovery-mcq
+  topicId: test-discovery
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import io\nimport unittest\nclass Sample(unittest.TestCase):\n    def test_sum(self):\n        self.assertEqual(1 + 2, 3)\n    def helper(self):\n        raise AssertionError('not a test')\nsuite = unittest.defaultTestLoader.loadTestsFromTestCase(Sample)\nprint(suite.countTestCases())\nresult = unittest.TextTestRunner(stream=io.StringIO()).run(suite)\nprint(result.testsRun, result.wasSuccessful())\n"
+  answer: '1
+
+    1 True'
+  explanation: 测试发现分文件匹配、模块导入和方法收集三个阶段。我固定 CI 入口，核对用例数量，避免模块导入副作用，并在跨版本项目中验证包结构。零失败可能只是零用例，不能直接作为覆盖完成的证据。
+  id: test-discovery-output
+  topicId: test-discovery
+- type: debug
+  prompt: CI 报告 Ran 0 tests / OK，能算完成验收吗？检查什么？
+  code: python -m unittest discover -s tests -p 'spec_*.py'
+  rubric:
+  - 分别核对目录、文件模式、类和方法前缀，并检查实际数量
+  - 避免导入副作用，明确顶层路径与跨版本包发现边界
+  explanation: 命名空间包在不同 Python 版本的发现支持有差异，跨 3.12–3.14 项目可以优先使用显式包和清楚的入口，不能把一个版本的行为写成永久规则。load_tests 协议可以定制加载，但也会让默认发现范围改变，应记录使用原因。检查退出码之外还要检查数量或关键用例存在，防止路径拼错导致零测试仍显示 OK。
+  id: test-discovery-debug
+  topicId: test-discovery
+- type: oral
+  prompt: 如何排查本地有测试但 CI 发现零条或导入错误的问题？
+  rubric:
+  - 分别核对目录、文件模式、类和方法前缀，并检查实际数量
+  - 避免导入副作用，明确顶层路径与跨版本包发现边界
+  - 测试发现分文件匹配、模块导入和方法收集三个阶段。我固定 CI 入口，核对用例数量，避免模块导入副作用，并在跨版本项目中验证包结构。零失败可能只是零用例，不能直接作为覆盖完成的证据。
+  explanation: CI 命令应显式指定起始目录和文件模式，并打印实际用例数量。需要包导入时要保持项目结构和顶层路径一致，避免本地从某个子目录执行能成功、CI 从根目录执行却导入另一个模块。发现过程会导入代码，因此测试模块顶层不要启动服务、访问网络或修改数据库；把准备动作放到夹具或测试方法中。
+  id: test-discovery-oral
+  topicId: test-discovery

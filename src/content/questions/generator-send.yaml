@@ -1,0 +1,46 @@
+topicId: generator-send
+questions:
+- type: mcq
+  prompt: 对刚创建的生成器调用 send(3)，通常会发生什么？
+  choices:
+  - id: a
+    text: 因尚未停在 yield 接收点而报 TypeError
+  - id: b
+    text: 自动忽略 3 并启动生成器
+  - id: c
+    text: 把 3 当作函数的第一个普通参数
+  correct: a
+  explanation: 执行生成器函数只创建对象，函数体尚未运行。第一次 next 让代码走到首个 yield 并暂停；之后 send(value) 使这个 yield 表达式的结果成为 value，生成器继续向下执行。send 的返回值则是下一次 yield 的产物，所以发送进去的值与返回出来的值是两个方向。
+  id: generator-send-mcq
+  topicId: generator-send
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "def accumulator():\n    total = 0\n    while True:\n        value = yield total\n        total += value\ngenerator = accumulator()\nprint(next(generator))\nprint(generator.send(3))\nprint(generator.send(2))\ngenerator.close()\n"
+  answer: '0
+
+    3
+
+    5'
+  explanation: 生成器 send 是双向协议：先启动到 yield，再把输入送入该表达式，返回下一项输出。我会在接口中写清状态与关闭责任，并测试未启动、正常输入、耗尽和提前关闭，避免调用方凭偶然顺序使用它。
+  id: generator-send-output
+  topicId: generator-send
+- type: debug
+  prompt: 双向生成器第一次调用失败，调用方遗漏哪个步骤？
+  code: 'generator = accumulator()
+
+    print(generator.send(10))'
+  rubric:
+  - 解释 yield 表达式接收值与 send 返回值的两个方向
+  - 先 next 或 send(None) 启动，并明确关闭与耗尽行为
+  explanation: 向刚创建的生成器发送非 None 会抛 TypeError；生成器结束后继续发送会遇到 StopIteration。close 会触发关闭协议，清理应放在 finally，并避免在处理 GeneratorExit 时再次 yield。不要依赖对象被回收时才清理文件或连接，拥有生成器的一方应明确负责关闭。
+  id: generator-send-debug
+  topicId: generator-send
+- type: oral
+  prompt: 用生成器实现状态机时，应该怎样向调用方说明生命周期？
+  rubric:
+  - 解释 yield 表达式接收值与 send 返回值的两个方向
+  - 先 next 或 send(None) 启动，并明确关闭与耗尽行为
+  - 生成器 send 是双向协议：先启动到 yield，再把输入送入该表达式，返回下一项输出。我会在接口中写清状态与关闭责任，并测试未启动、正常输入、耗尽和提前关闭，避免调用方凭偶然顺序使用它。
+  explanation: 这种协议可以表达小型状态机、交互式解析器或教学中的累加器，但接口需要说明启动、输入、产出和停止规则。调用方如果只需要常规迭代，就不应该被迫理解复杂的双向状态。业务中采用显式类和方法往往更容易调试，生成器适合状态天然围绕暂停点组织的场景。
+  id: generator-send-oral
+  topicId: generator-send

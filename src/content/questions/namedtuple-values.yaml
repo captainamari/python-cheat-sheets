@@ -1,0 +1,42 @@
+topicId: namedtuple-values
+questions:
+- type: mcq
+  prompt: 对 NamedTuple 调用 _replace 通常会怎样？
+  choices:
+  - id: a
+    text: 原地修改已有元组
+  - id: b
+    text: 返回字段替换后的新记录
+  - id: c
+    text: 自动验证所有字段类型正确
+  correct: b
+  explanation: NamedTuple 同时支持元组的位置访问、解包和具名字段访问，保留元组的不可变外层结构。_replace 返回新记录，不会修改原记录。字段中如果存列表，列表内容仍可 append，这与冻结 dataclass 的嵌套可变性边界相似：不可重绑定并不等于整棵对象图不可变。
+  id: namedtuple-values-mcq
+  topicId: namedtuple-values
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from typing import NamedTuple\nclass Result(NamedTuple):\n    name: str\n    count: int\noriginal = Result('job', 1)\nupdated = original._replace(count=2)\nprint(original.count, updated.count)\nprint(updated[0])\n"
+  answer: '1 2
+
+    job'
+  explanation: NamedTuple 是有名字的元组，外层不可变但内部对象未必不可变。它适合简单记录，我会检查解包兼容性、哈希和默认值共享；需要完整验证或工厂语义时选择更明确的数据模型。
+  id: namedtuple-values-output
+  topicId: namedtuple-values
+- type: debug
+  prompt: 所谓不可变记录的标签仍在变化，原因是什么？
+  code: "class Item(NamedTuple):\n    tags: list[str]\nitem = Item([])\nitem.tags.append('new')"
+  rubric:
+  - 区分元组外层不可变与内部对象可变
+  - 根据接口选择不可变字段并检查解包、哈希与输入校验
+  explanation: 带类型注解的 NamedTuple 不会拒绝错误类型，外部数据仍应在边界转换。作为字典键时，所有字段还需满足哈希要求，列表字段会让记录不可哈希。默认值也可能被多个记录共享，容器字段应避免使用共享可变默认对象，或者改用支持默认工厂的结构。
+  id: namedtuple-values-debug
+  topicId: namedtuple-values
+- type: oral
+  prompt: 给公开 NamedTuple 新增字段时，为什么还需要检查位置解包调用者？
+  rubric:
+  - 区分元组外层不可变与内部对象可变
+  - 根据接口选择不可变字段并检查解包、哈希与输入校验
+  - NamedTuple 是有名字的元组，外层不可变但内部对象未必不可变。它适合简单记录，我会检查解包兼容性、哈希和默认值共享；需要完整验证或工厂语义时选择更明确的数据模型。
+  explanation: 数据库行、计算结果或简短协议记录可以使用具名元组，减少位置数字的含义不清。若需要复杂校验、生命周期方法或频繁演进的字段集合，dataclass 或普通类可能更合适。公开接口一旦允许位置解包，新增字段就可能影响调用者，因此不能只把字段名稳定当作兼容性保证。
+  id: namedtuple-values-oral
+  topicId: namedtuple-values

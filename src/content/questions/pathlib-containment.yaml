@@ -1,0 +1,42 @@
+topicId: pathlib-containment
+questions:
+- type: mcq
+  prompt: Path.is_relative_to 是否会自动解析符号链接？
+  choices:
+  - id: a
+    text: 会，它会锁住整个目录
+  - id: b
+    text: 不会，它是路径组件上的词法检查
+  - id: c
+    text: 会，而且会阻止检查后的目录替换
+  correct: b
+  explanation: 字符串前缀比较不理解目录组件，/data/root-other 会被 startswith("/data/root") 错认成 root 内部。Path.resolve 会规范化路径并解析已有符号链接，relative_to 则按组件计算相对路径，不属于基目录时抛 ValueError。is_relative_to 只做词法判断，不会自行访问文件系统或处理符号链接；因此判断前是否 resolve，以及路径是否存在，都要根据用途明确。
+  id: pathlib-containment-mcq
+  topicId: pathlib-containment
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from pathlib import Path\nfrom tempfile import TemporaryDirectory\nwith TemporaryDirectory() as root:\n    base = Path(root).resolve()\n    for name in ('docs/readme.txt', '../outside.txt'):\n        candidate = (base / name).resolve()\n        try:\n            relative = candidate.relative_to(base)\n        except ValueError:\n            print('outside')\n        else:\n            print(relative.as_posix())\n"
+  answer: 'docs/readme.txt
+
+    outside'
+  explanation: 我按路径组件验证归属，而不是比较字符串前缀。resolve 后 relative_to 能处理常见越界和已有链接，但它不是原子访问授权。需要防止并发替换时，应把约束落实到目录权限和系统打开操作，并分别验证不同平台。
+  id: pathlib-containment-output
+  topicId: pathlib-containment
+- type: debug
+  prompt: 这个下载路径检查哪里不可靠？有哪些进一步边界？
+  code: "target = '/srv/files/' + name\nif target.startswith('/srv/files'):\n    return open(target, 'rb')"
+  rubric:
+  - 使用解析后的路径组件检查，覆盖 .. 和相邻目录前缀
+  - 说明检查到打开的竞态，需要目录权限或平台级原子约束
+  explanation: 一次 resolve 加检查不是完整的文件访问安全边界。攻击者能同时替换目录或符号链接时，检查后打开可能访问不同对象，这是 TOCTOU 问题。高风险场景应结合受控目录权限、目录文件描述符、平台支持的相对打开和不跟随链接策略。Windows 驱动器、大小写和路径分隔符也不能用一套手写字符串替换规则概括。
+  id: pathlib-containment-debug
+  topicId: pathlib-containment
+- type: oral
+  prompt: 如何设计限定目录内的文件访问，哪些风险不能靠 Path.resolve 一次解决？
+  rubric:
+  - 使用解析后的路径组件检查，覆盖 .. 和相邻目录前缀
+  - 说明检查到打开的竞态，需要目录权限或平台级原子约束
+  - 我按路径组件验证归属，而不是比较字符串前缀。resolve 后 relative_to 能处理常见越界和已有链接，但它不是原子访问授权。需要防止并发替换时，应把约束落实到目录权限和系统打开操作，并分别验证不同平台。
+  explanation: 静态文件工具可先解析固定根目录，把用户提供的相对路径与根目录组合，再解析目标并检查相对关系。示例比较普通子路径和带 .. 的越界路径，使用临时目录避免依赖机器布局。若要求文件必须存在，可使用 resolve(strict=True) 并显式处理找不到文件的情况。错误信息只需说明请求无效，日志则记录必要的诊断上下文。
+  id: pathlib-containment-oral
+  topicId: pathlib-containment

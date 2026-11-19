@@ -1,0 +1,48 @@
+topicId: partial-binding
+questions:
+- type: mcq
+  prompt: partial(f, option=1) 在调用时传 option=2，通常怎样处理？
+  choices:
+  - id: a
+    text: 调用时关键字覆盖预绑定关键字
+  - id: b
+    text: 永远拒绝覆盖任何预绑定参数
+  - id: c
+    text: 提前缓存第一次调用的结果
+  correct: a
+  explanation: partial 保存原函数、已提供的位置参数与关键字参数，调用时把新参数组合后交给原函数。它没有执行原函数来提前计算结果，因此与缓存不同。绑定的列表或字典仍是原对象引用，之后被修改会影响未来调用；把参数绑定理解成冻结完整数据快照会产生错误预期。
+  id: partial-binding-mcq
+  topicId: partial-binding
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from functools import partial\ndef label(value, *, prefix='item'):\n    return f'{prefix}:{value}'\nformat_id = partial(label, prefix='job')\nprint(format_id(3))\nprint(format_id(3, prefix='task'))\n"
+  answer: 'job:3
+
+    task:3'
+  explanation: partial 预绑定调用参数，不缓存结果，也不复制可变对象。我用它简化明确的配置注入，同时说明参数是否允许覆盖。测试覆盖对象共享、关键字覆盖和重复值冲突，安全约束不用可覆盖的默认值来冒充。
+  id: partial-binding-output
+  topicId: partial-binding
+- type: debug
+  prompt: 预绑定配置后继续修改字典，为什么回调行为改变？
+  code: 'config = {''mode'': ''a''}
+
+    callback = partial(run, config)
+
+    config[''mode''] = ''b''
+
+    callback()'
+  rubric:
+  - 区分参数绑定、结果缓存与对象复制
+  - 按契约复制或冻结配置，并验证关键字覆盖和重复绑定
+  explanation: 关键字预绑定可被调用时同名关键字覆盖，这适合默认配置，却不适合强制固定的安全约束。若某参数必须不可覆盖，应在明确包装函数中校验或隐藏它。位置参数再传同名关键字可能造成多份值冲突，测试需要覆盖这些调用形式，而不只验证最简单的一次调用。
+  id: partial-binding-debug
+  topicId: partial-binding
+- type: oral
+  prompt: 为什么 partial 的关键字默认值不能直接充当不可覆盖的权限约束？
+  rubric:
+  - 区分参数绑定、结果缓存与对象复制
+  - 按契约复制或冻结配置，并验证关键字覆盖和重复绑定
+  - partial 预绑定调用参数，不缓存结果，也不复制可变对象。我用它简化明确的配置注入，同时说明参数是否允许覆盖。测试覆盖对象共享、关键字覆盖和重复值冲突，安全约束不用可覆盖的默认值来冒充。
+  explanation: 需要把带配置的函数交给 map、回调注册或依赖接口时，partial 比重复写一层 lambda 更直接。用于公开 API 时要考虑可读签名和调试名称，不能假定包装后拥有原函数全部元数据。若函数是方法并需要描述符绑定行为，应该了解 partialmethod，而非把普通 partial 随意放进类体。
+  id: partial-binding-oral
+  topicId: partial-binding

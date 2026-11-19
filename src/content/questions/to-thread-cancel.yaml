@@ -1,0 +1,44 @@
+topicId: to-thread-cancel
+questions:
+- type: mcq
+  prompt: 取消正在等待 to_thread 的任务，能够直接保证什么？
+  choices:
+  - id: a
+    text: 任意线程函数会立即被安全杀死
+  - id: b
+    text: 所有外部副作用都会回滚
+  - id: c
+    text: 等待任务可以收到取消，但线程工作可能继续
+  correct: c
+  explanation: 协程包装层和实际线程函数具有不同生命周期。任务被取消后，await 可以结束，但线程仍可能继续进行文件写入或远程调用。Python 没有把任意线程代码安全地立即中断的通用机制，所以取消信号不能自动变成底层函数的回滚。to_thread 还会传播当前上下文，但上下文传播与停止能力无关。
+  id: to-thread-cancel-mcq
+  topicId: to-thread-cancel
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import asyncio\nfrom threading import Event\nasync def main():\n    release = Event()\n    started = asyncio.Event()\n    done = asyncio.Event()\n    loop = asyncio.get_running_loop()\n    def work():\n        loop.call_soon_threadsafe(started.set)\n        release.wait()\n        loop.call_soon_threadsafe(done.set)\n    task = asyncio.create_task(asyncio.to_thread(work))\n    await started.wait()\n    task.cancel()\n    try:\n        await task\n    except asyncio.CancelledError:\n        print('await cancelled')\n    print(done.is_set())\n    release.set()\n    await done.wait()\n    print('worker finished')\nasyncio.run(main())\n"
+  answer: 'await cancelled
+
+    False
+
+    worker finished'
+  explanation: 我把调用方取消与底层停止分开设计。to_thread 解决事件循环阻塞，不提供强制终止。同步函数要有自己的超时或停止协议，线程数量要受控；验证覆盖取消后副作用、资源释放和执行器退出。
+  id: to-thread-cancel-output
+  topicId: to-thread-cancel
+- type: debug
+  prompt: 请求已超时但后台仍写文件，应该补哪一层协议？
+  code: "async with asyncio.timeout(1):\n    await asyncio.to_thread(write_large_file)\n# 调用方认为超时意味着文件写入已经停止"
+  rubric:
+  - 区分协程等待生命周期与实际线程执行生命周期
+  - 给同步工作配置超时或停止信号并验证线程真实结束
+  explanation: 把所有超时都只设在 await 外层，可能让用户请求很快返回，但后台线程越积越多。退出 asyncio.run 时默认执行器的清理也可能等待未结束线程，因此短脚本耗时不等于外层超时设置。测试应确认线程真正结束，而不是只断言等待协程已取消。
+  id: to-thread-cancel-debug
+  topicId: to-thread-cancel
+- type: oral
+  prompt: 为什么只在 asyncio 外层设置超时，仍可能导致后台线程资源积累？
+  rubric:
+  - 区分协程等待生命周期与实际线程执行生命周期
+  - 给同步工作配置超时或停止信号并验证线程真实结束
+  - 我把调用方取消与底层停止分开设计。to_thread 解决事件循环阻塞，不提供强制终止。同步函数要有自己的超时或停止协议，线程数量要受控；验证覆盖取消后副作用、资源释放和执行器退出。
+  explanation: 接入同步 SDK 时，应给 SDK 配置底层超时，并决定调用方离开后是否允许操作完成。可以向支持的工作函数传 threading.Event，让其在循环或阶段边界检查停止请求；对于不可中断的第三方阻塞调用，需要限制并发和资源占用，必要时使用可管理的独立进程边界。
+  id: to-thread-cancel-oral
+  topicId: to-thread-cancel

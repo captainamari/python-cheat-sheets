@@ -31,10 +31,10 @@ test('收藏独立保存，导出与预览替换往返且重复导入不累加',
   };
   await page.locator('#import-progress').setInputFiles(file(backup));
   await expect(page.getByRole('heading', { name: '导入预览' })).toBeVisible();
-  await expect(page.locator('#review-summary')).toContainText('0 / 60');
+  await expect(page.locator('#review-summary')).toContainText('0 / 120');
   await page.getByRole('button', { name: '确认替换本机记录' }).click();
   await expect(page.locator('#backup-status')).toContainText('导入成功');
-  await expect(page.locator('#review-summary')).toContainText('1 / 60');
+  await expect(page.locator('#review-summary')).toContainText('1 / 120');
   await page.locator('#import-progress').setInputFiles([]);
   await page.locator('#import-progress').setInputFiles(file(backup));
   await page.getByRole('button', { name: '确认替换本机记录' }).click();

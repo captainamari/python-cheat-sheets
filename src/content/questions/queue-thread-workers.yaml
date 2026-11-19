@@ -1,0 +1,46 @@
+topicId: queue-thread-workers
+questions:
+- type: mcq
+  prompt: queue.join 返回能够直接说明什么？
+  choices:
+  - id: a
+    text: 所有已入队条目的未完成计数归零
+  - id: b
+    text: 所有工作线程必然已经退出
+  - id: c
+    text: 每项业务操作都一定成功
+  correct: a
+  explanation: put 增加队列条目与未完成计数，get 取走条目但不代表处理完成，task_done 才减少账目。join 等待计数归零，不会替你自动 join 工作线程。哨兵是应用层约定的特殊对象或值，消费者识别后退出，但哨兵本身也进入了队列账目，需要正确处理。
+  id: queue-thread-workers-mcq
+  topicId: queue-thread-workers
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from queue import Queue\nfrom threading import Thread\nqueue = Queue(maxsize=2)\nstop = object()\nresults = []\ndef worker():\n    while True:\n        item = queue.get()\n        try:\n            if item is stop: return\n            results.append(item * 2)\n        finally:\n            queue.task_done()\nthread = Thread(target=worker)\nthread.start()\nfor item in [1, 2, stop]: queue.put(item)\nqueue.join()\nthread.join()\nprint(results)\n"
+  answer: '[2, 4]'
+  explanation: 我把传递任务、确认完成和停止线程分成三层。每次成功 get 都在 finally 配对 task_done，哨兵通知退出，最后 join 队列和线程。测试覆盖任务失败、多个 worker 和正常关闭，确保没有永久等待或遗留线程。
+  id: queue-thread-workers-output
+  topicId: queue-thread-workers
+- type: debug
+  prompt: 有三个 worker 却只放一个哨兵，为什么剩余线程可能无法退出？
+  code: 'for _ in range(3): start_worker()
+
+    queue.put(STOP)
+
+    queue.join()
+
+    # 等待所有线程结束'
+  rubric:
+  - 区分队列账目完成与线程停止
+  - 为所有消费者设计结束协议并配对 task_done 和线程 join
+  explanation: 只调用 queue.join 不能保证线程已经退出，必须分别等待线程结束。task_done 表示处理账目完成，不代表业务成功，异常结果需要另存。本站兼容 Python 3.12，因此示例使用哨兵，不依赖较新版本增加的队列关闭 API；也不要用 qsize 的瞬时值替代真正的完成协议。
+  id: queue-thread-workers-debug
+  topicId: queue-thread-workers
+- type: oral
+  prompt: 为什么处理失败也可能需要调用 task_done，同时另行记录业务失败？
+  rubric:
+  - 区分队列账目完成与线程停止
+  - 为所有消费者设计结束协议并配对 task_done 和线程 join
+  - 我把传递任务、确认完成和停止线程分成三层。每次成功 get 都在 finally 配对 task_done，哨兵通知退出，最后 join 队列和线程。测试覆盖任务失败、多个 worker 和正常关闭，确保没有永久等待或遗留线程。
+  explanation: 固定 worker 数量加有界队列可以限制排队内存，生产者在容量满时等待。启动、停止与失败处理应由同一个调度层负责：每个 worker 的异常要被记录，消费者全部退出后不能让生产者永久阻塞。多个消费者通常需要相应数量的哨兵，或使用兼容目标版本的明确关闭机制。
+  id: queue-thread-workers-oral
+  topicId: queue-thread-workers

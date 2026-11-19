@@ -1,0 +1,42 @@
+topicId: callable-objects
+questions:
+- type: mcq
+  prompt: callable(obj) 为真能够保证什么？
+  choices:
+  - id: a
+    text: 任意参数调用都不会报错
+  - id: b
+    text: 对象支持调用协议的检查通过
+  - id: c
+    text: 对象一定拥有普通函数的 __name__
+  correct: b
+  explanation: 调用 obj(...) 会通过类型上的 __call__ 协议执行相应逻辑。实例字段可以保存配置与累计状态，方法可以提供 reset、close 等生命周期操作。callable(obj) 只能说明对象看起来支持调用，不保证某组参数正确，也不保证调用不会抛异常；仍要根据签名与业务契约使用。
+  id: callable-objects-mcq
+  topicId: callable-objects
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "class Counter:\n    def __init__(self): self.count = 0\n    def __call__(self):\n        self.count += 1\n        return self.count\na, b = Counter(), Counter()\nprint(a(), a(), b())\nprint(callable(a))\n"
+  answer: '1 2 1
+
+    True'
+  explanation: 我在需要可观察状态和管理接口时选择可调用对象，简单行为保留函数或闭包。__call__ 只定义调用入口，生命周期和并发语义仍由设计负责。测试覆盖签名、独立实例与重置，避免把可调用误解为无状态。
+  id: callable-objects-output
+  topicId: callable-objects
+- type: debug
+  prompt: 两个计数器共享了记录，状态定义位置有什么问题？
+  code: "class Recorder:\n    values = []\n    def __call__(self, value):\n        self.values.append(value)"
+  rubric:
+  - 说明调用协议与实例状态生命周期
+  - 在实例中初始化可变状态并验证两个实例隔离
+  explanation: 实例可调用不意味着它等同于普通函数的所有属性，例如不能假定一定存在 __name__。缓存装饰器、序列化和日志展示需要考虑这一点。状态放在类属性而不是实例属性中，还可能让所有实例共享同一个计数器或容器；测试应创建两个独立实例验证隔离，而不只连续调用一个对象。
+  id: callable-objects-debug
+  topicId: callable-objects
+- type: oral
+  prompt: 对比闭包与可调用对象，什么时候显式的 reset 或 close 方法更有价值？
+  rubric:
+  - 说明调用协议与实例状态生命周期
+  - 在实例中初始化可变状态并验证两个实例隔离
+  - 我在需要可观察状态和管理接口时选择可调用对象，简单行为保留函数或闭包。__call__ 只定义调用入口，生命周期和并发语义仍由设计负责。测试覆盖签名、独立实例与重置，避免把可调用误解为无状态。
+  explanation: 限次重试策略、带统计的转换器或可替换的测试时钟适合可调用对象，因为它们有比一次函数调用更长的生命周期。简单的参数绑定或无状态变换通常使用普通函数即可。把对象作为依赖传入时，应说明它是否可复用、线程安全以及是否允许在多个请求之间共享。
+  id: callable-objects-oral
+  topicId: callable-objects
