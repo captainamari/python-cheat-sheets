@@ -1,0 +1,25 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import { url } from '../../lib/urls';
+const topics = (await getCollection('topics'))
+  .sort((a, b) => a.data.order - b.data.order)
+  .map((t) => ({ id: t.id, title: t.data.title }));
+const questions = (await getCollection('questions')).flatMap((set) => set.data.questions);
+const data = JSON.stringify({ topics, questions }).replace(/</g, '\\u003c');
+---
+
+<Layout title="练习" active="practice">
+  <div class="wrap practice-page">
+    <a class="breadcrumb" href={url()}>
+      知识库 / 练习
+    </a>
+    <div id="practice-root" aria-live="polite"></div>
+    <noscript>
+      <h1>练习需要 JavaScript</h1>
+      <p>你可以继续阅读全部知识点，开启 JavaScript 后使用练习和本地记录。</p>
+    </noscript>
+    <script id="practice-data" type="application/json" set:html={data} />
+  </div>
+  <script src="../../scripts/practice.ts" />
+</Layout>

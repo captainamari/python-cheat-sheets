@@ -1,0 +1,47 @@
+topicId: gil
+questions:
+  - type: mcq
+    prompt: 在启用 GIL 的 CPython 中，哪种任务通常更适合用线程重叠执行？
+    choices:
+      - id: a
+        text: 大量阻塞网络请求
+      - id: b
+        text: 大量纯 Python 数值循环
+      - id: c
+        text: 依赖同一全局锁的短计算
+      - id: d
+        text: 必须严格串行的状态转换
+    correct: a
+    explanation: 线程可以在 I/O 等待期间让其他线程工作。纯 Python CPU 计算受 GIL 约束，是否并行需要结合解释器和扩展行为评估。
+    id: gil-mcq
+    topicId: gil
+  - type: output
+    prompt: 线程任务完成顺序可能不同，map 的结果顺序会怎样？
+    code:
+      "from concurrent.futures import ThreadPoolExecutor\nwith ThreadPoolExecutor(max_workers=2) as\
+      \ pool:\n    print(list(pool.map(abs, [-3, -1, -2])))"
+    answer: '[3, 1, 2]'
+    explanation: Executor.map 按输入顺序返回结果；这不代表线程按输入顺序完成。这里的输出是确定的。
+    id: gil-output
+    topicId: gil
+  - type: debug
+    prompt: 开发者认为有 GIL 就不会超卖，这段逻辑缺少什么？
+    code:
+      "def reserve():\n    global stock\n    if stock > 0:\n        stock -= 1\n        return True\n\
+      \    return False"
+    rubric:
+      - 检查和扣减是复合操作，需要同步
+      - 单进程线程共享时可在同一锁内完成检查与扣减
+      - 跨进程或跨实例应使用数据库条件更新或其他共享协调机制
+    explanation: GIL 不提供业务级事务。修复必须覆盖完整操作，并匹配共享状态所在的范围，进程内锁不能保护多个服务实例。
+    id: gil-debug
+    topicId: gil
+  - type: oral
+    prompt: 怎样选择线程、进程和 asyncio？free-threaded 改变了什么？
+    rubric:
+      - 按 I/O 与 CPU 工作负载分类
+      - 讨论序列化、库支持、线程与连接成本
+      - 区分版本、构建、运行时 GIL 状态及扩展兼容性
+    explanation: 选型需要验证实际瓶颈。free-threaded 提供新的执行条件，但不会消除共享数据竞争，也不会使所有工作负载自动提速。
+    id: gil-oral
+    topicId: gil

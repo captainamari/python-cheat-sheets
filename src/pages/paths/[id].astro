@@ -1,0 +1,29 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import TopicCard from '../../components/TopicCard.astro';
+import { url } from '../../lib/urls';
+export async function getStaticPaths() {
+  return (await getCollection('paths')).map((path) => ({
+    params: { id: path.id },
+    props: { path },
+  }));
+}
+const { path } = Astro.props;
+const topics = await Promise.all(path.data.topics.map((id) => getEntry('topics', id)));
+---
+
+<Layout title={path.data.title} description={path.data.description}>
+  <div class="wrap page-narrow">
+    <a class="breadcrumb" href={url()}>
+      知识库 / 学习路线
+    </a>
+    <p class="eyebrow accent">按目标复习</p>
+    <h1>{path.data.title}</h1>
+    <p class="page-intro">{path.data.description}</p>
+    <p class="muted">建议按下面的顺序学习，每篇完成后做一组练习。</p>
+    <div class="topic-list standalone-list">
+      {topics.map((topic) => topic && <TopicCard topic={topic} />)}
+    </div>
+  </div>
+</Layout>

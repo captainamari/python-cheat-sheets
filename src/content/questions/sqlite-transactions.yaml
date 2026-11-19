@@ -1,0 +1,53 @@
+topicId: sqlite-transactions
+questions:
+  - type: mcq
+    prompt: 数据库事务与请求幂等分别解决什么问题？
+    choices:
+      - id: a
+        text: 事务去重，幂等负责关闭连接
+      - id: b
+        text: 事务保证本次原子性，幂等处理重复执行
+      - id: c
+        text: 事务负责参数绑定，幂等负责索引
+      - id: d
+        text: 事务与幂等是完全相同的机制
+    correct: b
+    explanation: 事务让一组操作整体提交或回滚；幂等控制同一业务请求重复执行的结果。二者可以组合，但不能互相替代。
+    id: sqlite-transactions-mcq
+    topicId: sqlite-transactions
+  - type: output
+    prompt: 在指定事务模式下，异常后数据库中还剩多少行？
+    code:
+      "import sqlite3\nc = sqlite3.connect(\":memory:\", isolation_level=\"DEFERRED\", autocommit=sqlite3.LEGACY_TRANSACTION_CONTROL)\n\
+      c.execute(\"CREATE TABLE t (n INTEGER)\")\ntry:\n    with c:\n        c.execute(\"INSERT INTO t VALUES\
+      \ (?)\", (1,))\n        raise ValueError()\nexcept ValueError:\n    pass\nprint(c.execute(\"SELECT\
+      \ count(*) FROM t\").fetchone()[0])\nc.close()"
+    answer: '0'
+    explanation: 插入在事务内执行，异常离开连接上下文时回滚。查询得到零行；连接最后仍要明确关闭。
+    id: sqlite-transactions-output
+    topicId: sqlite-transactions
+  - type: debug
+    prompt: 扣款与入账之间可能失败，这种提交方式有什么问题？
+    code: 'debit(sender, amount)
+
+      connection.commit()
+
+      credit(receiver, amount)
+
+      connection.commit()'
+    rubric:
+      - 中间提交使两步无法共同回滚
+      - 将两步纳入同一事务并检查业务约束
+      - 重试场景增加唯一业务键或幂等记录
+    explanation: 每一步单独提交只能保证各自持久化，不能保证整个转账原子性。需要共同事务边界，并单独考虑重复请求。
+    id: sqlite-transactions-debug
+    topicId: sqlite-transactions
+  - type: oral
+    prompt: 如何验证一次转账的原子性、幂等性和连接回收？
+    rubric:
+      - 注入中途失败并检查双方余额未变化
+      - 重复提交相同业务键并检查只生效一次
+      - 确认成功、失败路径均归还或关闭连接
+    explanation: 只验证成功路径不足以证明事务设计。失败注入、重复请求和资源退出分别验证三类不同的约束。
+    id: sqlite-transactions-oral
+    topicId: sqlite-transactions

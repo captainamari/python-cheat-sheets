@@ -1,0 +1,163 @@
+---
+import { getCollection, render } from 'astro:content';
+import { Code } from 'astro:components';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import Layout from '../../layouts/Layout.astro';
+import { categoryName, difficultyName } from '../../lib/catalog';
+import { url } from '../../lib/urls';
+export async function getStaticPaths() {
+  const topics = (await getCollection('topics')).sort((a, b) => a.data.order - b.data.order);
+  return topics.map((topic, i) => ({
+    params: { id: topic.id },
+    props: { topic, previous: topics[i - 1], next: topics[i + 1] },
+  }));
+}
+const { topic, previous, next } = Astro.props;
+const { Content, headings } = await render(topic);
+const code = await readFile(resolve('examples', topic.data.example), 'utf8');
+const expected = await readFile(
+  resolve('examples', topic.data.example.replace('.py', '.out')),
+  'utf8',
+);
+---
+
+<Layout title={topic.data.title} description={topic.data.summary}>
+  <div class="wrap topic-layout">
+    <article class="article" data-pagefind-body data-topic-id={topic.id}>
+      <a class="breadcrumb" href={url('#library')}>
+        知识库 / {categoryName(topic.data.category)}
+      </a>
+      <div class="article-meta">
+        <span class="pill" data-pagefind-filter="category">
+          {categoryName(topic.data.category)}
+        </span>
+        <span>{difficultyName(topic.data.difficulty)}</span>
+        <span>{topic.data.minutes} 分钟</span>
+      </div>
+      <h1 data-pagefind-meta="title">{topic.data.title}</h1>
+      <p class="article-summary" data-pagefind-meta="description">
+        {topic.data.summary}
+      </p>
+      <div class="learning-goals">
+        <span class="eyebrow">读完你应该能够</span>
+        <ul>
+          {topic.data.objectives.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </div>
+      <section class="example-section" id="runnable-example">
+        <div class="example-heading">
+          <h2>先运行这个例子</h2>
+          <button class="copy-code small-button" data-copy-target="example-source">
+            复制代码
+          </button>
+        </div>
+        <div id="example-source">
+          <Code code={code.trimEnd()} lang="python" theme="solarized-light" />
+        </div>
+        <details class="expected-output">
+          <summary>查看预期输出</summary>
+          <pre><code>{expected}</code></pre>
+        </details>
+        <p class="example-version">{topic.data.python}</p>
+      </section>
+      <div class="prose">
+        <Content />
+      </div>
+      <section class="references" data-pagefind-ignore>
+        <h2>参考资料</h2>
+        <ul>
+          {topic.data.sources.map((source) => (
+            <li>
+              <a href={source.url} target="_blank" rel="noopener noreferrer">
+                {source.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <div class="article-complete" data-pagefind-ignore>
+        <div>
+          <strong>读完了，试着独立回答。</strong>
+          <p>阅读状态与练习结果分开记录。</p>
+        </div>
+        <div class="action-group">
+          <button id="mark-read" class="button secondary" aria-pressed="false">
+            标记已阅读
+          </button>
+          <a class="button primary" href={url(`practice/?topic=${topic.id}`)}>
+            练习这篇
+          </a>
+        </div>
+      </div>
+      <nav class="adjacent-topics" aria-label="相邻知识点" data-pagefind-ignore>
+        {previous ? (
+          <a href={url(`topics/${previous.id}/`)}>
+            <span>上一篇</span>
+            {previous.data.title}
+          </a>
+        ) : (
+          <span />
+        )}
+        {next ? (
+          <a href={url(`topics/${next.id}/`)}>
+            <span>下一篇</span>
+            {next.data.title}
+          </a>
+        ) : (
+          <span />
+        )}
+      </nav>
+    </article>
+    <aside class="article-toc">
+      <p class="eyebrow">本篇目录</p>
+      <nav aria-label="本篇目录">
+        <a href="#runnable-example">可运行示例</a>
+        {headings
+          .filter((h) => h.depth === 2)
+          .map((h) => (
+            <a href={`#${h.slug}`}>{h.text}</a>
+          ))}
+      </nav>
+      <a class="toc-practice" href={url(`practice/?topic=${topic.id}`)}>
+        练习这篇 · 4 道题
+      </a>
+      <p class="muted">先想一遍，再看答案。</p>
+    </aside>
+  </div>
+  <script>
+    import { readProgress, saveProgress, markRead, PROGRESS_KEY } from '../../lib/progress';
+    const id = document.querySelector<HTMLElement>('[data-topic-id]')!.dataset.topicId!;
+    const button = document.getElementById('mark-read') as HTMLButtonElement;
+    function update() {
+      const read = !!readProgress().topics[id]?.readAt;
+      button.textContent = read ? '已阅读 · 点击取消' : '标记已阅读';
+      button.setAttribute('aria-pressed', String(read));
+    }
+    update();
+    button.addEventListener('click', () => {
+      const p = readProgress();
+      saveProgress(markRead(p, id, !p.topics[id]?.readAt));
+      update();
+    });
+    window.addEventListener('storage', (e) => {
+      if (e.key === PROGRESS_KEY) update();
+    });
+    document.querySelectorAll<HTMLButtonElement>('.copy-code').forEach((btn) =>
+      btn.addEventListener('click', async () => {
+        const code = document
+          .getElementById(btn.dataset.copyTarget!)!
+          .querySelector('code')!.textContent!;
+        try {
+          await navigator.clipboard.writeText(code);
+          btn.textContent = '已复制';
+        } catch {
+          btn.textContent = '请选中代码复制';
+        }
+        setTimeout(() => (btn.textContent = '复制代码'), 1800);
+      }),
+    );
+  </script>
+</Layout>

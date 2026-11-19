@@ -1,0 +1,53 @@
+topicId: generators
+questions:
+  - type: mcq
+    prompt: 已经完全消费的生成器对象，再次遍历通常会怎样？
+    choices:
+      - id: a
+        text: 从第一项重新开始
+      - id: b
+        text: 返回上次最后一项
+      - id: c
+        text: 自动创建新的生成器
+      - id: d
+        text: 直接结束，不产生元素
+    correct: d
+    explanation: 生成器保留迭代状态，耗尽后不会重置。重新调用生成器函数，才能获得新的生成器对象。
+    id: generators-mcq
+    topicId: generators
+  - type: output
+    prompt: 下面两次消费分别输出什么？
+    code: 'g = (n * 2 for n in range(3))
+
+      print(next(g))
+
+      print(list(g))'
+    answer: '0
+
+      [2, 4]'
+    explanation: next 消费第一项 0，后面的 list 从当前迭代位置继续消费剩余两项，不会从头开始。
+    id: generators-output
+    topicId: generators
+  - type: debug
+    prompt: 为什么第二个总数变成 0？如何按需求修复？
+    code: 'values = (n for n in range(4))
+
+      first = sum(values)
+
+      second = sum(values)'
+    rubric:
+      - 第一次 sum 已耗尽生成器
+      - 数据较小时可以保存为列表供重复消费
+      - 数据较大时重新创建数据流或单次遍历计算多个指标
+    explanation: 需要先决定是否必须重复消费。可缓存结果，也可重新生成，或者把多个计算合并到一次遍历，不能假设迭代器自动重置。
+    id: generators-debug
+    topicId: generators
+  - type: oral
+    prompt: 生成器一定比列表省内存吗？有哪些资源风险？
+    rubric:
+      - 说明按需产生结果的收益
+      - 指出 list() 收集及局部大对象会抵消收益
+      - 说明提前停止时要显式管理文件或连接
+    explanation: 生成器降低的是同时保留的结果数量，不保证所有状态都很小。设计时还要考虑暂停期间持有的资源。
+    id: generators-oral
+    topicId: generators

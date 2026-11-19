@@ -1,0 +1,50 @@
+topicId: asyncio-cancellation
+questions:
+  - type: mcq
+    prompt: TaskGroup 子任务抛出普通异常时，通常会如何处理其他子任务？
+    choices:
+      - id: a
+        text: 让它们永久在后台运行
+      - id: b
+        text: 立即终止整个操作系统进程
+      - id: c
+        text: 取消它们并等待退出
+      - id: d
+        text: 忽略异常并当作全组成功
+    correct: c
+    explanation: TaskGroup 会管理同组任务的失败与清理，取消其他任务并等待，然后报告异常；这与丢弃后台任务引用不同。
+    id: asyncio-cancellation-mcq
+    topicId: asyncio-cancellation
+  - type: output
+    prompt: 下面代码的输出顺序是什么？
+    code:
+      "import asyncio\nasync def main():\n    async def child():\n        await asyncio.sleep(0)\n \
+      \       print(\"child\")\n    async with asyncio.TaskGroup() as group:\n        group.create_task(child())\n\
+      \    print(\"done\")\nasyncio.run(main())"
+    answer: 'child
+
+      done'
+    explanation: 退出 TaskGroup 会等待子任务完成，因此 child 必定先于组外的 done 输出。
+    id: asyncio-cancellation-output
+    topicId: asyncio-cancellation
+  - type: debug
+    prompt: 为什么外部取消后，这个任务可能继续工作？
+    code:
+      "async def run():\n    while True:\n        try:\n            await do_work()\n        except\
+      \ BaseException:\n            continue"
+    rubric:
+      - BaseException 会捕获 CancelledError
+      - 只捕获确实能恢复的业务异常
+      - 清理放在 finally，取消应重新抛出或不捕获
+    explanation: 无限循环捕获所有异常会吞掉取消请求，也可能吞掉系统级异常。应缩小异常边界，保持取消传播。
+    id: asyncio-cancellation-debug
+    topicId: asyncio-cancellation
+  - type: oral
+    prompt: 请求超时能保证数据库写入或线程任务已经停止吗？
+    rubric:
+      - 区分等待被取消与底层操作停止
+      - 说明线程任务和远端操作可能继续
+      - 结合幂等键、事务与状态核对设计恢复
+    explanation: 超时首先是调用方观察到的期限，不是副作用回滚证明。恢复方案要根据实际操作是否可取消、是否已提交来设计。
+    id: asyncio-cancellation-oral
+    topicId: asyncio-cancellation

@@ -1,0 +1,29 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { categoryName, difficultyName } from '../lib/catalog';
+import { url } from '../lib/urls';
+const { topic } = Astro.props as { topic: CollectionEntry<'topics'> };
+---
+
+<a
+  class="topic-row"
+  href={url(`topics/${topic.id}/`)}
+  data-topic-card={topic.id}
+  data-category={topic.data.category}
+  data-difficulty={topic.data.difficulty}
+>
+  <div class="topic-row-main">
+    <div class="eyebrow">
+      <span>{categoryName(topic.data.category)}</span>
+      <span class="topic-read" data-read-state={topic.id}>
+        未阅读
+      </span>
+    </div>
+    <h3>{topic.data.title}</h3>
+    <p>{topic.data.objectives.join(' · ')}</p>
+  </div>
+  <div class="topic-row-meta">
+    <span>{difficultyName(topic.data.difficulty)}</span>
+    <span>{topic.data.minutes} 分钟</span>
+  </div>
+</a>

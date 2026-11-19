@@ -1,0 +1,47 @@
+topicId: closure-binding
+questions:
+  - type: mcq
+    prompt: 需要让循环生成的函数保留各自的整数值，哪种写法可行？
+    choices:
+      - id: a
+        text: 'lambda: i'
+      - id: b
+        text: 'lambda i=i: i'
+      - id: c
+        text: 'lambda: int(i)'
+      - id: d
+        text: 'lambda: [i][0]'
+    correct: b
+    explanation: 默认参数右侧在函数定义时求值，各函数取得自己的默认值；其他写法仍在调用时读取外层 i。
+    id: closure-binding-mcq
+    topicId: closure-binding
+  - type: output
+    prompt: 运行这段闭包代码会输出什么？
+    code:
+      "def make():\n    value = 1\n    def get():\n        return value\n    value = 7\n    return get\n\
+      print(make()())"
+    answer: '7'
+    explanation: 闭包读取外层变量当前的绑定。返回函数前 value 已重新绑定到 7，并不是固定为定义 get 时的 1。
+    id: closure-binding-output
+    topicId: closure-binding
+  - type: debug
+    prompt: 这个计数器为什么报错？怎样保留每个计数器自己的状态？
+    code:
+      "def counter():\n    count = 0\n    def inc():\n        count += 1\n        return count\n   \
+      \ return inc"
+    rubric:
+      - count += 包含赋值，count 被视为 inc 的局部变量
+      - 在 inc 中声明 nonlocal count
+      - 验证两个 counter() 产生的计数器状态互不影响
+    explanation: 需要修改外层函数作用域的绑定时使用 nonlocal。使用 global 会引入模块共享状态，违背每个计数器独立的要求。
+    id: closure-binding-debug
+    topicId: closure-binding
+  - type: oral
+    prompt: 解释延迟绑定，并比较默认参数与工厂函数两种修复。
+    rubric:
+      - 区分定义时求值和调用时读取
+      - 说明循环共享绑定
+      - 指出捕获可变对象不会自动复制
+    explanation: 重点在绑定的生命周期。两种修复都可以固定各次创建时的对象引用，但复制或状态隔离仍要另行设计。
+    id: closure-binding-oral
+    topicId: closure-binding

@@ -1,0 +1,34 @@
+---
+import { generateField } from '../lib/art-field';
+import { url } from '../lib/urls';
+const strands = generateField();
+---
+
+<figure class="generative-art">
+  <div class="art-caption-top">
+    <span>ITERATIVE FORM</span>
+    <span>由简单规则，生出复杂。</span>
+  </div>
+  <svg class="field-art" viewBox="0 0 600 540" role="img" aria-labelledby="field-title field-desc">
+    <title id="field-title">迭代成形</title>
+    <desc id="field-desc">
+      陶土、深青与橄榄色曲线，由同一规则反复迭代，围绕中央留白形成起伏的环形织面。
+    </desc>
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      {strands.map((strand) => (
+        <path
+          d={strand.points.map(([x, y], i) => `${i ? 'L' : 'M'}${x},${y}`).join('') + 'Z'}
+          stroke={strand.color}
+          stroke-opacity={strand.opacity}
+          stroke-width={strand.weight}
+        />
+      ))}
+    </g>
+  </svg>
+  <figcaption>
+    <span>反复理解，逐渐成形。</span>
+    <a href={url('art/iterative-form.html')}>
+      探索这幅画 <span class="sr-only">（可调整参数）</span>
+    </a>
+  </figcaption>
+</figure>
