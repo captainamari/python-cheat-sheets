@@ -22,7 +22,7 @@ const links = [
     <meta name="description" content={description} />
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
     <link rel="icon" type="image/svg+xml" href={url('favicon.svg')} />
-    <meta name="theme-color" content="#fdf6e3" />
+    <meta name="theme-color" content="#faf9f5" />
   </head>
   <body>
     <a class="skip-link" href="#main">
@@ -32,7 +32,14 @@ const links = [
       <div class="header-inner">
         <a class="brand" href={url()} aria-label="Python Cheat Sheets 首页">
           <span class="brand-icon" aria-hidden="true">
-            [·]
+            <svg viewBox="0 0 40 40" fill="none">
+              <path
+                d="M8 14c0-8 24-8 24 0s-24 4-24 12 24 8 24 0M12 10c0-6 16-6 16 0s-16 14-16 20 16 6 16 0"
+                stroke="currentColor"
+                stroke-width="1.7"
+              />
+              <circle cx="20" cy="20" r="3" fill="currentColor" />
+            </svg>
           </span>
           <span>
             Python<span class="brand-sub">CHEAT SHEETS</span>

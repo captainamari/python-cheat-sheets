@@ -4,3 +4,6 @@ dist/
 package-lock.json
 playwright-report/
 test-results/
+scripts/art/viewer.template.html
+public/art/iterative-form.html
+public/art/LICENSE-anthropic.txt

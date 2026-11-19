@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
 import TopicCard from '../components/TopicCard.astro';
+import GenerativeArt from '../components/GenerativeArt.astro';
 import { categories } from '../lib/catalog';
 import { url } from '../lib/urls';
 const topics = (await getCollection('topics')).sort((a, b) => a.data.order - b.data.order);
@@ -14,7 +15,7 @@ const totalQuestions = questions.reduce((n, q) => n + q.data.questions.length, 0
   <div class="wrap home">
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow accent">PYTHON / 学习与面试</p>
+        <p class="eyebrow accent">PYTHON · 学习与面试</p>
         <h1>
           读懂代码，
           <br />
@@ -45,16 +46,7 @@ const totalQuestions = questions.reduce((n, q) => n + q.data.questions.length, 0
           </span>
         </div>
       </div>
-      <div class="code-note" aria-label="Python 可变默认参数示例">
-        <div class="code-note-bar">
-          <span>一个值得想明白的问题</span>
-          <span class="mono">.py</span>
-        </div>
-        <pre><code><span class="code-muted"># 为什么第二次调用不是独立列表？</span>{'\n\n'}<span class="code-keyword">def</span> <span class="code-function">collect</span>(value, items=[]):{'\n'}    items.append(value){'\n'}    <span class="code-keyword">return</span> items{'\n\n'}collect(<span class="code-string">"python"</span>){'\n'}collect(<span class="code-string">"testing"</span>)</code></pre>
-        <a href={url('topics/mutable-defaults/')} class="code-note-footer">
-          理解默认值的求值时机 <span class="pill">语言与对象</span>
-        </a>
-      </div>
+      <GenerativeArt />
     </section>
     <section class="path-section" aria-labelledby="path-title">
       <div class="section-heading">
@@ -65,14 +57,18 @@ const totalQuestions = questions.reduce((n, q) => n + q.data.questions.length, 0
         <p>同一份知识，按你的目标组织。</p>
       </div>
       <div class="path-grid">
-        {paths.map((path) => (
-          <a class="path-card" href={url(`paths/${path.id}/`)}>
-            <span class="eyebrow">{path.data.topics.length} 个知识点</span>
-            <h3>{path.data.title}</h3>
-            <p>{path.data.description}</p>
-            <span class="path-action">查看路线</span>
-          </a>
-        ))}
+        {paths
+          .sort(
+            (a, b) => Number(b.id === 'core') - Number(a.id === 'core') || a.id.localeCompare(b.id),
+          )
+          .map((path) => (
+            <a class="path-card" data-path={path.id} href={url(`paths/${path.id}/`)}>
+              <span class="eyebrow">{path.data.topics.length} 个知识点</span>
+              <h3>{path.data.title}</h3>
+              <p>{path.data.description}</p>
+              <span class="path-action">查看路线</span>
+            </a>
+          ))}
       </div>
     </section>
     <section class="library-section" id="library" aria-labelledby="library-title">

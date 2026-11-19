@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "astro dev --ignore-lock",
-    "build": "npm run validate && astro build && pagefind --site dist",
+    "build": "npm run art:build && npm run validate && astro build && pagefind --site dist",
     "preview": "astro preview --ignore-lock",
     "check": "astro check",
     "validate": "node --import tsx scripts/validate-content.ts",
@@ -17,7 +17,8 @@
     "test:site": "node scripts/verify-site.mjs",
     "test:e2e": "playwright test",
     "test:outputs": "node --import tsx scripts/verify-output-questions.ts",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "art:build": "node --import tsx scripts/build-art.ts"
   },
   "dependencies": {
     "astro": "^7.4.13",

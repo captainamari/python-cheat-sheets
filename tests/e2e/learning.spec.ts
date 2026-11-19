@@ -51,8 +51,12 @@ test('中文与技术术语搜索返回可打开的正确页面', async ({ page 
   await page.locator('.search-result').first().click();
   await expect(page).toHaveURL(/\/topics\/asyncio-cancellation\//);
 });
-test('分类导航、移动端宽度与无脚本正文', async ({ page }) => {
+test('分类导航、响应式宽度与正文展示', async ({ page }) => {
   await page.goto('');
+  await expect(page.locator('.field-art')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
   if (await page.locator('#category-select').isVisible())
     await page.locator('#category-select').selectOption('runtime');
   else await page.getByRole('button', { name: /运行时/ }).click();
