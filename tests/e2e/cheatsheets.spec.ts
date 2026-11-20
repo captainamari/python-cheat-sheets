@@ -44,13 +44,14 @@ test('分类速查示例、正文和练习链接有效，打印仅包含筛选�
   await expect(page).toHaveURL(/topics\/async-mock\//);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('AsyncMock');
 });
-test('速查无脚本时仍有规则和可展开的示例', async ({ browser, page: fixturePage }) => {
+test('速查无脚本时仍有规则和可展开的示例', async ({ browser, page: fixturePage, baseURL }) => {
   const context = await browser.newContext({
     javaScriptEnabled: false,
     viewport: fixturePage.viewportSize(),
+    baseURL,
   });
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:4321/python-cheat-sheets/cheatsheets/language/');
+  await page.goto('cheatsheets/language/');
   await expect(page.locator('[data-quick-entry]')).toHaveCount(23);
   await expect(page.locator('#quick-filters')).toBeHidden();
   const row = page.locator('#numeric-boundaries');

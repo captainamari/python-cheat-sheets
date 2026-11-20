@@ -1,5 +1,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { deploymentConfig } from '../deployment.config.mjs';
+const { site, base } = deploymentConfig();
 const dist = path.resolve('dist');
 async function walk(dir) {
   return (
@@ -21,11 +23,11 @@ for (const file of html) {
     const clean = decodeURIComponent(value.split(/[?#]/)[0]);
     let target;
     if (clean.startsWith('/')) {
-      if (!clean.startsWith('/python-cheat-sheets/')) {
+      if (!clean.startsWith(base)) {
         errors.push(`${file}: 缺少部署 base ${value}`);
         continue;
       }
-      target = path.join(dist, clean.slice('/python-cheat-sheets/'.length));
+      target = path.join(dist, clean.slice(base.length));
     } else target = path.resolve(path.dirname(file), clean);
     try {
       const info = await stat(target);
@@ -65,6 +67,13 @@ if (topics.length !== expectedTopics)
   errors.push(`预计 ${expectedTopics} 个知识页面，实际 ${topics.length}`);
 for (const file of topics) {
   const text = await readFile(file, 'utf8');
+  const relative = path
+    .relative(dist, file)
+    .split(path.sep)
+    .join('/')
+    .replace(/index\.html$/, '');
+  if (!text.includes(`rel="canonical" href="${new URL(base + relative, site).href}"`))
+    errors.push(`${file}: canonical 与部署域名或路径不匹配`);
   if (
     !text.includes('data-pagefind-body') ||
     !text.includes('预期输出') ||

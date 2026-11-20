@@ -12,6 +12,13 @@ concurrency:
 jobs:
   site:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        deployment: [pages, vercel]
+    env:
+      DEPLOY_TARGET: ${{ matrix.deployment }}
+      VERCEL_PROJECT_PRODUCTION_URL: python-cheat-sheets.example.com
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

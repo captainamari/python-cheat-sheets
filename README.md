@@ -67,13 +67,45 @@ CI 使用 Python 3.12、3.13、3.14 验证示例。浏览器测试覆盖阅读�
 
 添加内容请阅读 [内容规范](docs/content-guide.md)。技术方案见 [架构说明](docs/architecture.md)，本阶段交付见 [S3 验收记录](docs/s3-acceptance.md)（[S2](docs/s2-acceptance.md)、[S1](docs/s1-acceptance.md) 历史记录）。
 
+## GitHub → Vercel 自动部署
+
+仓库支持 Vercel Git 集成。首次在 Vercel 导入 `captainamari/python-cheat-sheets`，之后推送分支会生成预览部署，推送或合并到生产分支 `main` 会更新正式站点。无需额外配置 Vercel Token 或 GitHub Actions 部署密钥。
+
+首次接入：
+
+1. 合并包含部署适配的 PR #3。在 Vercel 选择 **Add New → Project**，连接 GitHub 并导入本仓库。
+2. Framework Preset 选 **Astro**，Root Directory 用仓库根目录，Node.js 用 **24.x**，Production Branch 用 **main**。
+3. 安装、构建和输出目录使用仓库 `vercel.json` 的设置：`npm ci`、构建并校验静态产物、`dist`。不要改成只执行 `astro build`，否则不会生成 Pagefind 搜索索引。
+4. 启用项目对系统环境变量的访问。配置自动使用 Vercel 生产域名生成 canonical，站内链接使用根路径 `/`。也可设置 `SITE_URL=https://你的域名`（无子路径）固定正式域名；域名仍需在 Vercel Domains 中绑定。
+5. 点击 **Deploy**。后续从 GitHub 推送即可触发部署，PR 预览用于检查搜索、速查和练习。
+
+`vercel.json` 显式选择 Vercel 构建目标，防止系统变量关闭时误用 Pages 子路径。缺少域名变量且未设置 `SITE_URL` 时会明确报错。本站是静态输出，不需要 Vercel SSR adapter，也不需要在部署环境执行 Python；Python 示例由 GitHub CI 验证。
+
+GitHub CI 同时验证 Pages 子路径和 Vercel 根路径，各运行完整桌面/手机尺寸浏览器测试。Vercel Git 自动部署与 GitHub CI 分别触发；若要保证只能合并通过 CI 的提交，应在 GitHub 为 main 设置必需检查。
+
+从 Pages 换到 Vercel 或更换域名时，浏览器学习记录不会跨域自动迁移。请在旧站导出 JSON，再到新站导入。
+
+本地验证 Vercel 构建（以下为 POSIX shell）：
+
+```bash
+export DEPLOY_TARGET=vercel
+export SITE_URL=https://example.com
+npm run build
+npm run test:site
+npm run preview
+# 验证浏览器流程时先关闭手工预览，让 Playwright 管理服务
+npm run test:e2e
+```
+
+取消以上环境变量后，本地开发默认回到 Pages 子路径。部署说明参考 [Astro 官方指南](https://docs.astro.build/en/guides/deploy/vercel/)和 [Vercel Git 集成](https://vercel.com/docs/git)。仓库配置就绪不代表你的 Vercel 账号已经导入或上线项目。
+
 ## 发布到 GitHub Pages
 
 仓库默认部署路径为 `/python-cheat-sheets/`。第一次发布前，在仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**。需要仓库管理员完成此设置。
 
 合并到 `main` 后，`Deploy GitHub Pages` 工作流完成校验、构建并上传 Pages 产物。也可以手动运行该工作流。PR 只运行 CI，不发布、不自动合并。
 
-预期发布地址为 `https://captainamari.github.io/python-cheat-sheets/`；是否已上线以 Actions 中部署结果为准。自定义域名时，需同步调整 `astro.config.mjs` 的 `site` / `base` 以及部署路径测试。
+预期发布地址为 `https://captainamari.github.io/python-cheat-sheets/`；是否已上线以 Actions 中部署结果为准。Pages 自定义域名需要调整 `deployment.config.mjs` 的 Pages 配置；Vercel 的域名与根路径按上节自动处理。
 
 ## 参考
 
