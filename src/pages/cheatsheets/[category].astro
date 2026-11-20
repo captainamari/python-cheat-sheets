@@ -1,0 +1,30 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import QuickReference from '../../components/QuickReference.astro';
+import { categories } from '../../lib/catalog';
+import { url } from '../../lib/urls';
+export function getStaticPaths() {
+  return categories.map((category) => ({ params: { category: category.id }, props: { category } }));
+}
+const { category } = Astro.props;
+---
+
+<Layout title={`${category.name}速查`} description={category.description} active="cheatsheets">
+  <div class="wrap quick-page">
+    <a class="breadcrumb" href={url('cheatsheets/')}>
+      速查 / {category.name}
+    </a>
+    <p class="eyebrow accent">PYTHON · 分类速查</p>
+    <h1>{category.name}</h1>
+    <p class="page-intro">{category.description} 展开示例验证，再用练习检查理解。</p>
+    <nav class="quick-category-links" aria-label="分类速查">
+      <a href={url('cheatsheets/')}>全部速查</a>
+      {categories
+        .filter((c) => c.id !== category.id)
+        .map((c) => (
+          <a href={url(`cheatsheets/${c.id}/`)}>{c.name}</a>
+        ))}
+    </nav>
+    <QuickReference category={category.id} />
+  </div>
+</Layout>

@@ -1,0 +1,62 @@
+topicId: hashlib-hmac
+questions:
+- type: mcq
+  prompt: 把消息和普通 SHA-256 摘要一起发送，能防止两者被同时替换吗？
+  choices:
+  - id: a
+    text: 不能，需要认证机制及可信密钥或公钥
+  - id: b
+    text: 能，摘要长度固定就能认证
+  - id: c
+    text: 能，只要把摘要转为十六进制
+  correct: a
+  explanation: 哈希函数把任意长度输入映射成固定长度摘要，任何能看到消息的人都能重新计算普通摘要。因此把数据和 SHA-256 摘要一起传输，并不能阻止攻击者同时替换两者。HMAC 在标准构造中加入共享密钥，接收方用同一密钥重新计算并比较，判断消息是否由持钥方生成且未被修改。它不加密消息，也不能区分多个共享同一密钥的发送者。
+  id: hashlib-hmac-mcq
+  topicId: hashlib-hmac
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'import hashlib
+
+    import hmac
+
+    key = b''demo-only-key''
+
+    message = b''amount=10''
+
+    tag = hmac.digest(key, message, ''sha256'')
+
+    print(hmac.compare_digest(tag, hmac.digest(key, message, ''sha256'')))
+
+    print(hmac.compare_digest(tag, hmac.digest(key, b''amount=11'', ''sha256'')))
+
+    print(len(hashlib.sha256(message).digest()))
+
+    '
+  answer: 'True
+
+    False
+
+    32'
+  explanation: 摘要说明内容是否一致，HMAC 在共享密钥前提下验证完整性和持钥方。对原始字节签名，用 compare_digest 比较，并单独设计重放控制和密钥轮换。它不提供保密性，也不能替代密码哈希方案。
+  id: hashlib-hmac-output
+  topicId: hashlib-hmac
+- type: debug
+  prompt: 下面校验为什么不能认证消息来源？
+  code: 'expected = hashlib.sha256(body).hexdigest()
+
+    assert expected == request.headers[''Digest'']'
+  rubric:
+  - 区分普通摘要与带密钥认证，按协议对原始字节计算 HMAC
+  - 用 compare_digest 比较，并单独处理重放与密钥管理
+  explanation: 比较校验值使用 hmac.compare_digest，并保证双方类型兼容。这个函数用于减少内容比较引入的计时差异，不代表整条请求处理流程都没有侧信道。HMAC 本身不阻止旧请求重放，还需要带签名的时间戳、随机标识或序号以及服务端的窗口和去重规则。普通哈希也不适合直接存储密码，应使用专门的密码派生方案。
+  id: hashlib-hmac-debug
+  topicId: hashlib-hmac
+- type: oral
+  prompt: Webhook 签名验证需要哪些步骤，HMAC 自身没有解决什么问题？
+  rubric:
+  - 区分普通摘要与带密钥认证，按协议对原始字节计算 HMAC
+  - 用 compare_digest 比较，并单独处理重放与密钥管理
+  - 摘要说明内容是否一致，HMAC 在共享密钥前提下验证完整性和持钥方。对原始字节签名，用 compare_digest 比较，并单独设计重放控制和密钥轮换。它不提供保密性，也不能替代密码哈希方案。
+  explanation: Webhook 校验通常针对收到的原始字节计算 HMAC，而不是先解析 JSON 再重新序列化，否则字段顺序、空白和编码可能改变签名输入。协议还应明确算法、编码、密钥轮换和失败响应。示例用固定教学密钥生成并验证消息，修改一字节后校验失败；真实密钥由配置或密钥管理系统提供，不写入仓库。
+  id: hashlib-hmac-oral
+  topicId: hashlib-hmac

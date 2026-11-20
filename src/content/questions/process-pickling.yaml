@@ -1,0 +1,40 @@
+topicId: process-pickling
+questions:
+- type: mcq
+  prompt: 对标准进程池更可靠的任务形态是什么？
+  choices:
+  - id: a
+    text: 捕获活动连接的局部 lambda
+  - id: b
+    text: 可导入函数加可序列化参数
+  - id: c
+    text: 任意父进程对象都可直接共享
+  correct: b
+  explanation: 标准 pickle 对许多函数按模块名与限定名称引用，而不是把任意函数的代码和闭包完整打包。工作进程必须能找到相应定义，参数与结果也要满足传输规则。父进程里能调用某对象，只证明本进程拥有它，不证明另一解释器能够重建其状态或安全使用它持有的资源。
+  id: process-pickling-mcq
+  topicId: process-pickling
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import multiprocessing as mp\nfrom concurrent.futures import ProcessPoolExecutor\nif __name__ == '__main__':\n    with ProcessPoolExecutor(max_workers=1, mp_context=mp.get_context('spawn')) as pool:\n        print(pool.submit(pow, 2, 5).result())\n"
+  answer: '32'
+  explanation: 我把进程任务视为可传输的数据契约：函数可导入、参数结果可序列化、资源在正确进程内创建。局部闭包改成顶层函数与显式参数。性能评估同时计算传输成本，测试使用实际选定的启动上下文。
+  id: process-pickling-output
+  topicId: process-pickling
+- type: debug
+  prompt: 提交 lambda 后序列化失败，应该怎样改造任务边界？
+  code: "with ProcessPoolExecutor() as pool:\n    result = pool.submit(lambda x: x + offset, 3).result()"
+  rubric:
+  - 解释函数引用、参数传输与子进程导入的要求
+  - 改成顶层函数和显式参数，资源在工作进程内初始化
+  explanation: 交互环境中临时定义的函数可能没有可供子进程正常导入的模块。某种启动方式下偶然能运行的例子也不能代表进程池任务队列不需要序列化。使用第三方序列化扩展会改变能力与风险，但不消除资源所有权和依赖版本问题；本站标准库示例不依赖这些扩展。
+  id: process-pickling-debug
+  topicId: process-pickling
+- type: oral
+  prompt: 为什么父进程能调用的函数，不一定能作为进程池任务正常运行？
+  rubric:
+  - 解释函数引用、参数传输与子进程导入的要求
+  - 改成顶层函数和显式参数，资源在工作进程内初始化
+  - 我把进程任务视为可传输的数据契约：函数可导入、参数结果可序列化、资源在正确进程内创建。局部闭包改成顶层函数与显式参数。性能评估同时计算传输成本，测试使用实际选定的启动上下文。
+  explanation: 处理图片、文本或批量计算时，把任务设计为稳定顶层函数加明确的数据输入，在工作进程中初始化必要依赖。数据库连接和网络客户端通常不应直接作为参数跨进程传递。大数据复制还可能吞掉并行收益，应测量序列化、传输和计算各阶段，而不是只增加 worker 数量。
+  id: process-pickling-oral
+  topicId: process-pickling

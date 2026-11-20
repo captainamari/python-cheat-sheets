@@ -1,0 +1,44 @@
+topicId: unittest-assertions
+questions:
+- type: mcq
+  prompt: 比较无序列表又要检查重复次数，应该用什么？
+  choices:
+  - id: a
+    text: assertCountEqual
+  - id: b
+    text: 把两边转成 set 后 assertEqual
+  - id: c
+    text: assertIs
+  correct: a
+  explanation: assertEqual 检查值相等，assertIs 检查对象身份，不能因为两个列表内容相同就期待它们是同一实例。assertCountEqual 忽略顺序但保留元素出现次数，比把列表都转成集合更适合无序结果；后者会掩盖重复项。assertAlmostEqual 按小数位或 delta 比较差值，和采用相对容差的 math.isclose 不是完全相同的契约。选择前先确定业务允许的误差。
+  id: unittest-assertions-mcq
+  topicId: unittest-assertions
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import unittest\ncase = unittest.TestCase()\na = [1, 2]\nb = [1, 2]\ncase.assertEqual(a, b)\nprint(a is b)\ncase.assertCountEqual([1, 2, 1], [2, 1, 1])\nprint('same multiplicity')\ntry:\n    case.assertCountEqual([1, 1], [1])\nexcept AssertionError:\n    print('duplicate detected')\n"
+  answer: 'False
+
+    same multiplicity
+
+    duplicate detected'
+  explanation: 我先写清比较语义，再选断言。值与身份分开，无序结果保留重复次数，数值误差说明绝对或相对容差。用具体断言改善失败定位，并围绕接口合同检查结果，避免只断言一个模糊布尔值。
+  id: unittest-assertions-output
+  topicId: unittest-assertions
+- type: debug
+  prompt: 这个断言会漏掉哪种数据错误？
+  code: self.assertEqual(set(actual_ids), set(expected_ids))
+  rubric:
+  - 用 assertCountEqual 保留重复次数，区分相等和身份
+  - 明确数值容差与合同字段，选择能定位失败的具体断言
+  explanation: 过度宽松的断言会隐藏错误，过度完整的快照又可能把无关字段变化当成故障。应根据接口合同选择可观察行为。Python 普通 assert 在优化运行模式下可能被移除，不适合承担产品输入校验；unittest 的断言方法不依赖这一语法。异常断言也要缩小作用域，避免把准备阶段的异常错认成目标调用的正确行为。
+  id: unittest-assertions-debug
+  topicId: unittest-assertions
+- type: oral
+  prompt: 怎样设计既不过松也不过度绑定实现的测试断言？
+  rubric:
+  - 用 assertCountEqual 保留重复次数，区分相等和身份
+  - 明确数值容差与合同字段，选择能定位失败的具体断言
+  - 我先写清比较语义，再选断言。值与身份分开，无序结果保留重复次数，数值误差说明绝对或相对容差。用具体断言改善失败定位，并围绕接口合同检查结果，避免只断言一个模糊布尔值。
+  explanation: API 测试可以先断言响应状态，再对关键字段的类型、必填值和业务关系做细分检查。失败信息应指出哪个字段与期望不符，而不是只给 assertTrue(actual == expected) 的布尔结果。示例展示值相等但身份不同，以及无序比较保留重复次数。对于动态时间或生成编号，验证格式和关系比硬编码整个响应更稳定。
+  id: unittest-assertions-oral
+  topicId: unittest-assertions

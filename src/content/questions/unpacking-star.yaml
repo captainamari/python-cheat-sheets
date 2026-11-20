@@ -1,0 +1,54 @@
+topicId: unpacking-star
+questions:
+- type: mcq
+  prompt: 在 a, *rest = iterator 中，rest 通常是什么？
+  choices:
+  - id: a
+    text: 保持惰性的原迭代器
+  - id: b
+    text: 收集剩余元素的新列表
+  - id: c
+    text: 不会消费输入的元组视图
+  correct: b
+  explanation: 固定数量的解包要求元素个数匹配；a, *middle, z 允许中间部分可变，middle 总是列表。赋值时必须先获得足够信息来确定最后的元素，所以带尾部目标的解包需要消费整个输入。即使没有尾部目标，星号目标也会收集剩余元素，不会保留原迭代器供稍后逐项读取。
+  id: unpacking-star-mcq
+  topicId: unpacking-star
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'first, *middle, last = range(5)
+
+    print(first, middle, last)
+
+    a, *rest = (9,)
+
+    print(a, rest)
+
+    print(type(middle).__name__)
+
+    '
+  answer: '0 [1, 2, 3] 4
+
+    9 []
+
+    list'
+  explanation: 解包用于表达有限结构，星号部分会形成列表并消费输入。处理流时我用明确迭代器操作，避免把尾部一次性收集。验证覆盖长度不足、空中间段和错误输入类型，确保便利语法没有改变容量边界。
+  id: unpacking-star-output
+  topicId: unpacking-star
+- type: debug
+  prompt: 读取一个大流的首项时，下面写法有什么容量风险？
+  code: "first, *remaining = rows\nprocess(first)\nfor row in remaining:\n    process(row)"
+  rubric:
+  - 说明星号目标会收集并消费剩余输入
+  - 用 iter、next 或 islice 保留流式处理并测试空输入
+  explanation: 星号解包结果与函数调用中的 *args 展开有关但语义不同，前者收集，后者把已有可迭代对象展开为参数。空输入、只有首尾和额外字段都要考虑，不能把所有 ValueError 都吞成默认值。文本字符串本身也可迭代，误传字符串可能被拆成字符而没有触发预期的类型错误。
+  id: unpacking-star-debug
+  topicId: unpacking-star
+- type: oral
+  prompt: 为什么含尾部变量的解包必须读取整个有限输入？
+  rubric:
+  - 说明星号目标会收集并消费剩余输入
+  - 用 iter、next 或 islice 保留流式处理并测试空输入
+  - 解包用于表达有限结构，星号部分会形成列表并消费输入。处理流时我用明确迭代器操作，避免把尾部一次性收集。验证覆盖长度不足、空中间段和错误输入类型，确保便利语法没有改变容量边界。
+  explanation: 解析简短配置行、固定协议字段或函数返回值时，解包可以直接表达结构。面对大型文件或流式查询，读取首项应使用 iter 和 next，剩余迭代器继续交给下游；需要有限窗口时使用 itertools.islice。这样接口的内存行为与消费位置都更明确，避免一行语法隐藏全量加载。
+  id: unpacking-star-oral
+  topicId: unpacking-star

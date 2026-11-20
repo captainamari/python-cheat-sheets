@@ -1,0 +1,54 @@
+topicId: subprocess-boundaries
+questions:
+- type: mcq
+  prompt: 参数列表与 shell=False 最直接避免哪类解释？
+  choices:
+  - id: a
+    text: 目标程序解析自己的命令行选项
+  - id: b
+    text: 子程序自身的全部业务副作用
+  - id: c
+    text: shell 把输入解析为命令语法
+  correct: c
+  explanation: 参数列表把可执行程序与各个参数分开传递，空格或特殊字符留在对应参数中，不需要手工拼接引号。shell=True 则引入命令解释器，通配符、管道和其他语法会参与处理，用户输入可能改变执行含义。shell=False 解决的是 shell 解析边界，不保证目标程序会把所有输入都当普通数据。
+  id: subprocess-boundaries-mcq
+  topicId: subprocess-boundaries
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'import subprocess
+
+    import sys
+
+    result = subprocess.run([sys.executable, ''-c'', ''import sys; print(sys.argv[1])'', ''a b; c''], check=True, capture_output=True, text=True, timeout=3)
+
+    print(result.stdout.strip())
+
+    print(result.returncode)
+
+    '
+  answer: 'a b; c
+
+    0'
+  explanation: 我用参数列表建立命令边界，控制解释器、目录、环境、输出和超时。shell=False 不是完整安全策略，目标程序的选项语义仍要校验。结果处理明确区分启动失败、非零退出、超时和成功输出。
+  id: subprocess-boundaries-output
+  topicId: subprocess-boundaries
+- type: debug
+  prompt: 文件名直接拼入命令，为什么不能靠简单加引号解决所有输入？
+  code: 'subprocess.run(f''convert {filename} output.png'', shell=True)
+
+    # filename 来自用户输入'
+  rubric:
+  - 区分 shell 解析与目标程序的参数语义
+  - 使用参数列表并校验选项、退出码、超时和输出大小
+  explanation: 以减号开头的用户参数仍可能被目标程序解释成选项，需要白名单或使用该程序支持的 -- 分隔符。超时处理也要考虑子进程树及外部副作用，不是抛出 TimeoutExpired 就代表所有后代工作自动回滚。测试只运行可信的小程序，覆盖非零退出和超时，不依赖真实系统危险命令。
+  id: subprocess-boundaries-debug
+  topicId: subprocess-boundaries
+- type: oral
+  prompt: 调用子进程时，为什么返回码、超时和输出容量需要一起设计？
+  rubric:
+  - 区分 shell 解析与目标程序的参数语义
+  - 使用参数列表并校验选项、退出码、超时和输出大小
+  - 我用参数列表建立命令边界，控制解释器、目录、环境、输出和超时。shell=False 不是完整安全策略，目标程序的选项语义仍要校验。结果处理明确区分启动失败、非零退出、超时和成功输出。
+  explanation: 调用转换器或测试子进程时，可使用 sys.executable 指向当前解释器，设置 check=True 让非零退出成为异常，并显式指定 cwd、环境和 timeout。text=True 负责文本解码，但编码应与目标程序一致。大输出场景避免无界 capture_output，必要时流式读取或重定向到受控文件。
+  id: subprocess-boundaries-oral
+  topicId: subprocess-boundaries

@@ -1,0 +1,10 @@
+from unittest.mock import Mock, call
+parent = Mock()
+save = Mock()
+notify = Mock()
+parent.attach_mock(save, 'save')
+parent.attach_mock(notify, 'notify')
+save(7)
+notify(7)
+print(parent.mock_calls == [call.save(7), call.notify(7)])
+print(parent.mock_calls == [call.notify(7), call.save(7)])

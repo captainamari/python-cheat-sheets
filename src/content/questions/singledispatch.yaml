@@ -1,0 +1,64 @@
+topicId: singledispatch
+questions:
+- type: mcq
+  prompt: singledispatch 默认根据什么选择实现？
+  choices:
+  - id: a
+    text: 所有参数注解的组合
+  - id: b
+    text: 第一个参数的运行时类型
+  - id: c
+    text: 列表中第一个元素的类型
+  correct: b
+  explanation: 装饰器保留一个默认实现，再用 register 为具体类型添加处理器。调用时检查首个参数的类型，选择最合适的注册函数；没有匹配则使用默认逻辑。注册抽象基类时还需要考虑继承与虚拟子类的关系，不能把分派规则简化成按注册时间依次尝试所有函数。
+  id: singledispatch-mcq
+  topicId: singledispatch
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'from functools import singledispatch
+
+    @singledispatch
+
+    def describe(value): return ''other''
+
+    @describe.register(int)
+
+    def _(value): return ''integer''
+
+    @describe.register(str)
+
+    def _(value): return ''text''
+
+    print(describe(3))
+
+    print(describe(''3''))
+
+    print(describe([]))
+
+    '
+  answer: 'integer
+
+    text
+
+    other'
+  explanation: 单分派按首参的运行时类型选择实现，适合类型驱动的单维扩展。我明确默认行为和继承边界，不把泛型注解当内容检查。测试包含子类、未知类型和布尔这类特殊继承关系，确保路由符合业务含义。
+  id: singledispatch-output
+  topicId: singledispatch
+- type: debug
+  prompt: 希望区分整数列表与字符串列表，这种注册思路为什么不成立？
+  code: "@convert.register(list)\ndef convert_list(values):\n    return sum(values)\n# 调用方误以为 list[str] 会自动去另一个泛型处理器"
+  rubric:
+  - 说明首参类型分派与容器内容校验的边界
+  - 显式验证元素或使用业务类型，测试未知类型与子类
+  explanation: list[int] 与 list[str] 在运行时仍是 list，单分派不会读取每个元素来判断应选哪种泛型处理器。注解有助于注册和静态说明，但不是对容器内容的自动校验。bool 又是 int 子类，注册 int 处理器时要决定是否接受布尔值，必要时为 bool 单独注册。
+  id: singledispatch-debug
+  topicId: singledispatch
+- type: oral
+  prompt: 当路由依赖两个参数或数据字段时，为什么单分派可能不是合适抽象？
+  rubric:
+  - 说明首参类型分派与容器内容校验的边界
+  - 显式验证元素或使用业务类型，测试未知类型与子类
+  - 单分派按首参的运行时类型选择实现，适合类型驱动的单维扩展。我明确默认行为和继承边界，不把泛型注解当内容检查。测试包含子类、未知类型和布尔这类特殊继承关系，确保路由符合业务含义。
+  explanation: 序列化展示、调试摘要或根据输入类别做转换时，单分派可以让新增类型处理集中且可扩展。默认实现最好明确拒绝不支持的类型或返回合理通用结果，而不是静默输出空字符串。处理行为涉及两种输入的组合或业务字段时，普通条件、映射表或策略对象可能更清楚。
+  id: singledispatch-oral
+  topicId: singledispatch

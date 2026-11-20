@@ -1,0 +1,42 @@
+topicId: attribute-hooks
+questions:
+- type: mcq
+  prompt: 正常属性查找成功时，__getattr__ 通常会怎样？
+  choices:
+  - id: a
+    text: 每次都先于 __getattribute__ 执行
+  - id: b
+    text: 不会作为后备被调用
+  - id: c
+    text: 自动覆盖所有已有类属性
+  correct: b
+  explanation: 普通 obj.name 查找通常经过 __getattribute__，它负责默认描述符、实例字典和类属性等流程。若最终以 AttributeError 失败，__getattr__ 可以提供动态后备值。钩子内部再次写 self.name 可能重新进入同一个钩子，产生无限递归；必要时调用 object.__getattribute__ 或合适的 super 实现。
+  id: attribute-hooks-mcq
+  topicId: attribute-hooks
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "class Config:\n    value = 3\n    def __getattr__(self, name):\n        if name == 'legacy': return self.value\n        raise AttributeError(name)\nconfig = Config()\nprint(config.value, config.legacy)\nprint(hasattr(config, 'missing'))\n"
+  answer: '3 3
+
+    False'
+  explanation: 我优先用 __getattr__ 处理少量明确的缺失别名，只有必要时才改写全量访问。内部访问避免递归，未知字段正确抛错。测试包含现有属性、缺失属性、property 内部失败和真实协议调用，避免后备逻辑吞掉缺陷。
+  id: attribute-hooks-output
+  topicId: attribute-hooks
+- type: debug
+  prompt: 访问字段时递归溢出，钩子内部应怎样读取状态？
+  code: "class Proxy:\n    def __getattribute__(self, name):\n        return getattr(self.target, name)"
+  rubric:
+  - 区分全量访问钩子与属性缺失后备
+  - 使用基础查找读取内部状态并对未知字段抛 AttributeError
+  explanation: property 内部因为程序错误抛 AttributeError，也可能触发后备查找，导致真正错误被伪装成字段缺失。应缩小捕获范围并保留根因。特殊方法的隐式调用还有类型级查找规则，重写普通访问钩子不等于透明代理了 len、运算符或迭代协议。
+  id: attribute-hooks-debug
+  topicId: attribute-hooks
+- type: oral
+  prompt: 为什么 property 内部的 AttributeError 可能让后备属性逻辑掩盖真实错误？
+  rubric:
+  - 区分全量访问钩子与属性缺失后备
+  - 使用基础查找读取内部状态并对未知字段抛 AttributeError
+  - 我优先用 __getattr__ 处理少量明确的缺失别名，只有必要时才改写全量访问。内部访问避免递归，未知字段正确抛错。测试包含现有属性、缺失属性、property 内部失败和真实协议调用，避免后备逻辑吞掉缺陷。
+  explanation: 延迟属性、兼容旧字段名和轻量代理可以使用后备查找，但最好只处理明确允许的名称。未知属性应抛 AttributeError，让 hasattr、getattr 默认值和外部工具正确理解对象。若把所有未知属性都返回 None，拼写错误会被静默隐藏，调试和类型提示都会失去可靠边界。
+  id: attribute-hooks-oral
+  topicId: attribute-hooks

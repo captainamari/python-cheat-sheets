@@ -1,0 +1,42 @@
+topicId: object-construction
+questions:
+- type: mcq
+  prompt: 要在 str 子类创建时改变实际文本值，通常应该定制哪个方法？
+  choices:
+  - id: a
+    text: __new__
+  - id: b
+    text: 只在 __init__ 中给 self 重新赋值
+  - id: c
+    text: __del__
+  correct: a
+  explanation: 通常调用类时先执行 __new__，如果它返回当前类或其子类的实例，再对该实例调用 __init__。若返回其他类型对象，当前类的初始化方法不会按普通路径继续执行。__new__ 的第一个参数是类，通常委托 super().__new__ 获取实例；__init__ 接到的 self 已经存在。
+  id: object-construction-mcq
+  topicId: object-construction
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "class Upper(str):\n    def __new__(cls, text):\n        return super().__new__(cls, text.upper())\nvalue = Upper('python')\nprint(value)\nprint(isinstance(value, Upper))\n"
+  answer: 'PYTHON
+
+    True'
+  explanation: 我把创建与初始化分开：__new__ 决定对象，__init__ 设置已有对象状态且返回 None。不可变类型的值定制放在创建阶段，普通对象优先保持默认创建流程。测试覆盖返回类型、重复构造和继承行为。
+  id: object-construction-output
+  topicId: object-construction
+- type: debug
+  prompt: 初始化方法返回计算结果后为何报错？
+  code: "class Total:\n    def __init__(self, values):\n        return sum(values)"
+  rubric:
+  - 区分实例创建与已有实例初始化
+  - 让 __init__ 返回 None，使用字段或工厂返回业务结果
+  explanation: 返回旧实例并不意味着 __init__ 一定只运行一次，重复调用类可能再次初始化同一个对象，破坏既有状态。__init__ 返回一个业务结果会抛 TypeError，构造器的返回对象不由它决定。涉及多重继承时，还需要遵循协作式 super 和兼容签名，不可把基类初始化顺序随意硬编码。
+  id: object-construction-debug
+  topicId: object-construction
+- type: oral
+  prompt: 如果 __new__ 返回缓存中的旧实例，为什么仍要考虑重复初始化？
+  rubric:
+  - 区分实例创建与已有实例初始化
+  - 让 __init__ 返回 None，使用字段或工厂返回业务结果
+  - 我把创建与初始化分开：__new__ 决定对象，__init__ 设置已有对象状态且返回 None。不可变类型的值定制放在创建阶段，普通对象优先保持默认创建流程。测试覆盖返回类型、重复构造和继承行为。
+  explanation: 继承 str、tuple 等不可变类型时，内容在创建时就确定，应该在 __new__ 中进行必要转换。普通业务对象只需在 __init__ 初始化字段，不必为了展示技巧重写创建过程。工厂函数、类方法和显式缓存往往比在 __new__ 中隐藏单例或复用逻辑更容易理解和测试。
+  id: object-construction-oral
+  topicId: object-construction

@@ -1,0 +1,42 @@
+topicId: exitstack
+questions:
+- type: mcq
+  prompt: ExitStack 中后登记的普通清理回调通常何时执行？
+  choices:
+  - id: a
+    text: 永远按登记顺序执行
+  - id: b
+    text: 只有垃圾回收时才自动执行
+  - id: c
+    text: 比先登记的回调更早执行
+  correct: c
+  explanation: 嵌套 with 对固定数量资源很清楚，资源数量取决于输入时则不方便静态书写。ExitStack.enter_context 进入一个上下文并登记退出方法，callback 登记普通清理函数。退出栈时逆序执行，符合后取得资源往往依赖前一个资源的关系，也能在部分初始化失败时沿既有栈清理。
+  id: exitstack-mcq
+  topicId: exitstack
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from contextlib import ExitStack\nevents = []\nwith ExitStack() as stack:\n    stack.callback(events.append, 'first')\n    stack.callback(events.append, 'second')\n    print(events)\nprint(events)\n"
+  answer: '[]
+
+    [''second'', ''first'']'
+  explanation: 我用 ExitStack 表达动态资源集合，获取后立即登记并按逆序释放。异常抑制与普通回调区别要清楚，资源转移也必须明确新所有者。测试重点是中途获取失败、回调顺序和清理异常，而不仅是正常退出。
+  id: exitstack-output
+  topicId: exitstack
+- type: debug
+  prompt: 打开后续文件失败时，前面文件泄漏，应该怎样组织？
+  code: "files = [open(path) for path in paths]\ntry:\n    process(files)\nfinally:\n    for file in files: file.close()"
+  rubric:
+  - 说明动态资源登记与逆序退出机制
+  - 每取得资源立即 enter_context，验证部分初始化失败
+  explanation: callback 与 push/enter_context 的异常协议不同：普通 callback 不接收异常详情，也不能通过返回真值抑制异常。退出回调自身抛错仍需要正确传播和诊断。ExitStack 不会因为 Python 对象被垃圾回收就保证执行全部回调，仍应使用 with 或显式 close，而不是把清理寄托在回收时机。
+  id: exitstack-debug
+  topicId: exitstack
+- type: oral
+  prompt: ExitStack.callback 和 enter_context 在异常处理能力上有什么差别？
+  rubric:
+  - 说明动态资源登记与逆序退出机制
+  - 每取得资源立即 enter_context，验证部分初始化失败
+  - 我用 ExitStack 表达动态资源集合，获取后立即登记并按逆序释放。异常抑制与普通回调区别要清楚，资源转移也必须明确新所有者。测试重点是中途获取失败、回调顺序和清理异常，而不仅是正常退出。
+  explanation: 同时读取一组文件、注册多处测试补丁或构造多步服务依赖时，可以把获取与登记放在一起。需要把已经取得的资源交给其他对象拥有时，pop_all 可以转移退出栈，但新所有者必须负责关闭。栈只是组织生命周期，不会自动判断资源是否应该在此时移交。
+  id: exitstack-oral
+  topicId: exitstack

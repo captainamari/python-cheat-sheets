@@ -1,0 +1,58 @@
+topicId: module-paths
+questions:
+- type: mcq
+  prompt: 怀疑导入了错误的同名模块时，最直接应先检查什么？
+  choices:
+  - id: a
+    text: 只反复重新安装全部依赖
+  - id: b
+    text: 实际模块来源与解释器路径
+  - id: c
+    text: 假定 import 名称唯一对应一个磁盘文件
+  correct: b
+  explanation: 导入系统沿相应查找路径寻找模块，找到后再结合 sys.modules 缓存复用。工作目录、脚本运行方式、环境变量和安装位置都可能影响路径构成。当前目录里存在 json.py 或 typing.py 之类文件时，代码可能导入它而非预期模块，从而出现属性缺失或循环导入式的错误。
+  id: module-paths-mcq
+  topicId: module-paths
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'import importlib.util
+
+    spec = importlib.util.find_spec(''json'')
+
+    print(spec.name)
+
+    print(spec.origin is not None)
+
+    print(spec.submodule_search_locations is not None)
+
+    '
+  answer: 'json
+
+    True
+
+    True'
+  explanation: 我先确认实际解释器和模块来源，再检查路径、同名文件与缓存。稳定的包布局和入口比散落的 sys.path 补丁更可靠。验证既覆盖开发目录，也覆盖安装后的干净环境，避免只在作者机器上导入成功。
+  id: module-paths-output
+  topicId: module-paths
+- type: debug
+  prompt: 项目里的 json.py 导致 json.dumps 不存在，问题可能在哪里？
+  code: '# 文件名也叫 json.py
+
+    import json
+
+    print(json.dumps({''ok'': True}))'
+  rubric:
+  - 解释查找路径、模块缓存与同名遮蔽
+  - 检查来源并修正命名和包入口，在隔离环境验证
+  explanation: 模块来源未必总是普通文件，内置模块、命名空间包和特殊加载器的元数据可能不同。修改文件名后还要注意已有解释器缓存与运行进程是否重启。随意把项目根目录插到 sys.path 最前面会改变优先级，可能修复一处导入却遮蔽另一依赖，应通过结构和入口解决根因。
+  id: module-paths-debug
+  topicId: module-paths
+- type: oral
+  prompt: 为什么开发目录里运行成功，安装成包后却可能出现不同的导入结果？
+  rubric:
+  - 解释查找路径、模块缓存与同名遮蔽
+  - 检查来源并修正命名和包入口，在隔离环境验证
+  - 我先确认实际解释器和模块来源，再检查路径、同名文件与缓存。稳定的包布局和入口比散落的 sys.path 补丁更可靠。验证既覆盖开发目录，也覆盖安装后的干净环境，避免只在作者机器上导入成功。
+  explanation: 定位时先打印或检查模块的 __file__、spec.origin 以及解释器路径，确认真实加载来源，而不是立即重装依赖。项目采用明确包布局，通过 python -m package.module 或安装后的入口运行，减少临时修改 sys.path 的需要。虚拟环境还应与实际执行的解释器对应，不能只看 shell 中某个 pip 名称。
+  id: module-paths-oral
+  topicId: module-paths

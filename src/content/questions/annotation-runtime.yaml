@@ -1,0 +1,44 @@
+topicId: annotation-runtime
+questions:
+- type: mcq
+  prompt: 跨 Python 3.12–3.14 读取注解时，哪种假设不可靠？
+  choices:
+  - id: a
+    text: 所有注解始终已经是类型对象
+  - id: b
+    text: 标准库提供注解读取接口
+  - id: c
+    text: future 选项可能影响注解形式
+  correct: a
+  explanation: 较早版本默认在定义时求值许多注解，from __future__ import annotations 可以保存字符串形式；Python 3.14 又引入延迟求值机制。inspect.get_annotations 提供统一入口，但具体返回格式、字符串求值与命名空间仍需明确。跨版本库应针对支持矩阵测试，而不是依赖直接读取某个内部属性的偶然结果。
+  id: annotation-runtime-mcq
+  topicId: annotation-runtime
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from __future__ import annotations\nimport inspect\ndef count(value: int) -> int:\n    return value\nraw = inspect.get_annotations(count, eval_str=False)\nresolved = inspect.get_annotations(count, eval_str=True)\nprint(raw['value'])\nprint(resolved['value'] is int)\n"
+  answer: 'int
+
+    True'
+  explanation: 我先确定版本与注解策略，再选择标准读取 API，并显式处理求值和命名空间。跨版本测试使用明确的注解模式，插件反射只作用于可信代码。类型元数据、运行时校验和安全边界是三件不同的事。
+  id: annotation-runtime-output
+  topicId: annotation-runtime
+- type: debug
+  prompt: 插件启动时 NameError，为什么读取注解也需要异常边界？
+  code: 'annotations = inspect.get_annotations(plugin, eval_str=True)
+
+    # 注解里引用了当前命名空间中不存在的类型名'
+  rubric:
+  - 说明版本、future 选项与注解求值模式的差异
+  - 在可信边界读取并处理命名空间及解析失败，不把反射当校验
+  explanation: eval_str=False 只能避免相应字符串求值路径，不能被当作对任意不可信对象进行反射的安全沙箱。注解表达式及访问过程都可能执行代码或抛异常。也不要把运行时注解读取等同于参数校验，函数调用仍不会因为有注解就自动检查实际输入。
+  id: annotation-runtime-debug
+  topicId: annotation-runtime
+- type: oral
+  prompt: 为什么关闭字符串求值不能把任意插件的注解读取变成安全沙箱？
+  rubric:
+  - 说明版本、future 选项与注解求值模式的差异
+  - 在可信边界读取并处理命名空间及解析失败，不把反射当校验
+  - 我先确定版本与注解策略，再选择标准读取 API，并显式处理求值和命名空间。跨版本测试使用明确的注解模式，插件反射只作用于可信代码。类型元数据、运行时校验和安全边界是三件不同的事。
+  explanation: 依赖注入、序列化框架和插件发现可能在运行时分析注解，应在受信任代码边界内进行。需要解析前向引用时，要提供正确的全局和局部命名空间，并处理名称尚未定义的情况。读取后还需要区分类型、字符串和其他合法注解值，注解不是强制只能保存 class 的字段。
+  id: annotation-runtime-oral
+  topicId: annotation-runtime

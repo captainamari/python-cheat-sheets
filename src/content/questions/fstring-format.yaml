@@ -1,0 +1,54 @@
+topicId: fstring-format
+questions:
+- type: mcq
+  prompt: 执行 f"{value:.2f}" 后，原来的 value 会怎样？
+  choices:
+  - id: a
+    text: 自动变成保留两位的小数
+  - id: b
+    text: 原值保持不变
+  - id: c
+    text: 自动转换为字符串并覆盖变量
+  correct: b
+  explanation: 花括号内先求值，再根据 !s、!r 等转换与冒号后的格式说明生成文本。数值的 .2f 表示固定小数位显示，字符串宽度则用于填充和对齐。格式化后的结果是新的 str，原始数字仍保持原值；要改变计算精度或业务舍入，应在数值层使用适当运算。
+  id: fstring-format-mcq
+  topicId: fstring-format
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'value = 12.345
+
+    print(f''{value:.2f}'')
+
+    print(value)
+
+    print(f''{7:04d}'')
+
+    print(f''{"x":>3}'')
+
+    '
+  answer: "12.35\n12.345\n0007\n  x"
+  explanation: f-string 解决可读的文本组装，格式规格控制显示，不改变原值。我把计算、舍入和输出转义留在各自边界。测试既检查关键展示，也确认没有把格式化结果误当作新的业务数据或安全参数。
+  id: fstring-format-output
+  topicId: fstring-format
+- type: debug
+  prompt: 展示格式被拿回去参与金额计算，这种设计有什么问题？
+  code: 'amount = float(f''{amount:.2f}'')
+
+    total += amount
+
+    # 业务没有规定逐笔舍入模式'
+  rubric:
+  - 区分显示格式与数值舍入规则
+  - 在数值层明确规则，输出边界独立处理转义与展示
+  explanation: 不要把格式化后的金额再解析回浮点数作为核心计算步骤，这把展示与计算耦合起来。!r 适合调试，会包含对象表示，并不保证适合作为用户界面的最终文本。f-string 中的表达式可以调用函数并产生副作用，所以格式化不是纯粹的文本替换，也不应执行不可信表达式。
+  id: fstring-format-debug
+  topicId: fstring-format
+- type: oral
+  prompt: 为什么把用户输入放入 f-string 并不等于安全的 SQL 或 shell 参数绑定？
+  rubric:
+  - 区分显示格式与数值舍入规则
+  - 在数值层明确规则，输出边界独立处理转义与展示
+  - f-string 解决可读的文本组装，格式规格控制显示，不改变原值。我把计算、舍入和输出转义留在各自边界。测试既检查关键展示，也确认没有把格式化结果误当作新的业务数据或安全参数。
+  explanation: 生成命令行报告时，宽度与对齐可以让字段便于比较，但字符宽度不等于终端可见列宽，中文和组合字符需要额外考虑。日志通常优先使用参数化记录，避免无条件构造昂贵消息。用户可控的内容若进入 HTML、SQL 或 shell，还必须遵循对应输出边界的编码或参数绑定规则。
+  id: fstring-format-oral
+  topicId: fstring-format

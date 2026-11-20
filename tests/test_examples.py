@@ -10,7 +10,7 @@ class ExampleTests(unittest.TestCase):
     def test_published_outputs(self):
         examples = sorted((ROOT / 'examples').glob('*.py'))
         topics = sorted((ROOT / 'src/content/topics').glob('*.md'))
-        self.assertEqual(len(topics), 60)
+        self.assertEqual(len(topics), 120)
         self.assertEqual(len(examples), len(topics))
         for example in examples:
             with self.subTest(example=example.name):

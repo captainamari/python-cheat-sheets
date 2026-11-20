@@ -1,0 +1,154 @@
+---
+import { getCollection } from 'astro:content';
+import { Code } from 'astro:components';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { categories, roles, difficultyName } from '../lib/catalog';
+import { url } from '../lib/urls';
+const { category } = Astro.props as { category?: string };
+const topics = (await getCollection('topics')).sort((a, b) => a.data.order - b.data.order);
+const selected = category ? categories.filter((c) => c.id === category) : categories;
+const entries = await Promise.all(
+  topics
+    .filter((t) => !category || t.data.category === category)
+    .map(async (t) => ({
+      ...t,
+      code: (await readFile(resolve('examples', t.data.example), 'utf8')).trimEnd(),
+      output: (
+        await readFile(resolve('examples', t.data.example.replace('.py', '.out')), 'utf8')
+      ).trimEnd(),
+    })),
+);
+---
+
+<div class="quick-reference" data-fixed-category={category}>
+  <form id="quick-filters" class="quick-filters" role="search" hidden>
+    <div class="quick-search-field">
+      <label for="quick-query">查概念或 API</label>
+      <input
+        id="quick-query"
+        name="q"
+        type="search"
+        maxlength="200"
+        placeholder="例如：取消、AsyncMock、__slots__"
+        autocomplete="off"
+      />
+    </div>
+    {!category && (
+      <div>
+        <label for="quick-category">分类</label>
+        <select id="quick-category" name="category">
+          <option value="all">全部分类</option>
+          {categories.map((c) => (
+            <option value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </div>
+    )}
+    <div>
+      <label for="quick-difficulty">难度</label>
+      <select id="quick-difficulty" name="difficulty">
+        <option value="all">全部难度</option>
+        {['basic', 'intermediate', 'advanced'].map((d) => (
+          <option value={d}>{difficultyName(d)}</option>
+        ))}
+      </select>
+    </div>
+    <div>
+      <label for="quick-role">岗位</label>
+      <select id="quick-role" name="role">
+        <option value="all">全部岗位</option>
+        {roles.map((r) => (
+          <option value={r}>{r}</option>
+        ))}
+      </select>
+    </div>
+    <button class="small-button" type="reset">
+      清除筛选
+    </button>
+  </form>
+  <div class="quick-toolbar">
+    <p id="quick-count" role="status">
+      {entries.length} 个速查条目
+    </p>
+    <div class="action-group" id="quick-actions" hidden>
+      <button id="quick-copy-link" class="small-button" type="button">
+        复制筛选链接
+      </button>
+      <button id="quick-print" class="small-button" type="button">
+        打印当前筛选
+      </button>
+    </div>
+  </div>
+  <p id="quick-action-status" role="status" class="muted"></p>
+  <noscript>
+    <p class="muted">
+      下面的速查条目与示例无需 JavaScript；启用后可筛选、复制链接与打印。也可直接使用浏览器打印。
+    </p>
+  </noscript>
+  <p id="quick-empty" class="empty-state" hidden>
+    没有匹配的条目。试试较短的关键词，或清除难度、岗位筛选。
+  </p>
+  {selected.map((c) => (
+    <section class="quick-section" data-quick-section={c.id} aria-labelledby={`section-${c.id}`}>
+      <div class="quick-section-heading">
+        <h2 id={`section-${c.id}`}>{c.name}</h2>
+        {!category && (
+          <a class="text-link" href={url(`cheatsheets/${c.id}/`)}>
+            单独查看本分类
+          </a>
+        )}
+      </div>
+      {entries
+        .filter((t) => t.data.category === c.id)
+        .map((t) => (
+          <article
+            id={t.id}
+            class="quick-row"
+            data-quick-entry
+            data-category={t.data.category}
+            data-difficulty={t.data.difficulty}
+            data-roles={JSON.stringify(t.data.roles)}
+          >
+            <div class="quick-topic">
+              <span class="pill">{difficultyName(t.data.difficulty)}</span>
+              <h3>
+                <a href={url(`topics/${t.id}/`)}>{t.data.title}</a>
+              </h3>
+              <p class="muted">{t.data.roles.join(' · ')}</p>
+            </div>
+            <div class="quick-answer">
+              <p class="quick-rule">{t.data.summary}</p>
+              <details class="quick-example">
+                <summary>展开可运行示例</summary>
+                <div class="quick-example-meta">
+                  <span>{t.data.python}</span>
+                  <button
+                    class="small-button quick-copy"
+                    type="button"
+                    data-code-id={`code-${t.id}`}
+                    hidden
+                  >
+                    复制代码
+                  </button>
+                </div>
+                <div id={`code-${t.id}`}>
+                  <Code code={t.code} lang="python" theme="solarized-light" />
+                </div>
+                <p class="eyebrow">预期输出</p>
+                <pre class="quick-output"><code>{t.output}</code></pre>
+              </details>
+              <div class="quick-links">
+                <a href={url(`topics/${t.id}/`)}>读原理与边界</a>
+                <a href={url(`practice/?topic=${t.id}`)}>练习这篇</a>
+                <a href={`#${t.id}`} aria-label={`定位：${t.data.title}`}>
+                  定位此条
+                </a>
+              </div>
+            </div>
+          </article>
+        ))}
+    </section>
+  ))}
+</div>
+<script src="../scripts/quick-reference.ts" />

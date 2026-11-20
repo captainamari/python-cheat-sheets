@@ -1,0 +1,42 @@
+topicId: class-static-method
+questions:
+- type: mcq
+  prompt: 子类调用继承的 classmethod 时，cls 通常绑定到谁？
+  choices:
+  - id: a
+    text: 永远绑定到定义方法的基类
+  - id: b
+    text: 自动绑定到最近创建的实例
+  - id: c
+    text: 实际访问该方法的子类
+  correct: c
+  explanation: 方法绑定由描述符协议完成。实例方法的第一个参数通常命名 self，类方法通常命名 cls，名称只是约定，绑定方式由声明决定。通过子类访问继承的 classmethod 时，cls 是该子类；staticmethod 则像放在类命名空间中的普通函数，不获得自动绑定的接收者。
+  id: class-static-method-mcq
+  topicId: class-static-method
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "class Item:\n    def __init__(self, value): self.value = value\n    @classmethod\n    def parse(cls, text): return cls(int(text))\n    @staticmethod\n    def valid(text): return text.isdigit()\nclass Special(Item):\n    pass\nitem = Special.parse('7')\nprint(type(item).__name__, item.value)\nprint(Item.valid('7'))\n"
+  answer: 'Special 7
+
+    True'
+  explanation: 我按行为依赖决定绑定：需要实例用实例方法，需要实际类型用 classmethod，无绑定辅助行为才考虑 staticmethod。工厂通过 cls 构造，并测试子类返回类型与签名契约，避免继承入口悄悄退回基类。
+  id: class-static-method-output
+  topicId: class-static-method
+- type: debug
+  prompt: 子类工厂返回了基类实例，应该修改哪处？
+  code: "class Base:\n    @classmethod\n    def create(cls):\n        return Base()\nclass Child(Base): pass"
+  rubric:
+  - 区分实例、类与无接收者的三种绑定方式
+  - 替代构造器使用 cls 并测试子类类型与构造签名
+  explanation: 类方法中写死 Base(...) 会让子类调用仍得到基类对象，表面上继承了工厂，实际上丢失子类语义。静态方法也不会自动获得 self，不能靠命名第一个参数为 self 改变这一点。工厂还需要保证子类构造签名兼容，cls 不是让任意继承层次都自动正确的万能机制。
+  id: class-static-method-debug
+  topicId: class-static-method
+- type: oral
+  prompt: 为什么完全不依赖类状态的工具函数有时更适合放在模块级？
+  rubric:
+  - 区分实例、类与无接收者的三种绑定方式
+  - 替代构造器使用 cls 并测试子类类型与构造签名
+  - 我按行为依赖决定绑定：需要实例用实例方法，需要实际类型用 classmethod，无绑定辅助行为才考虑 staticmethod。工厂通过 cls 构造，并测试子类返回类型与签名契约，避免继承入口悄悄退回基类。
+  explanation: from_dict 或 parse 之类替代构造器可以先校验输入，再返回 cls(...)，让继承保留构造扩展能力。完全不依赖实例或类的辅助转换函数可以放在模块级；只有确实属于类型公开接口时再用 staticmethod，避免把所有工具函数都塞进某个类里作为目录。
+  id: class-static-method-oral
+  topicId: class-static-method

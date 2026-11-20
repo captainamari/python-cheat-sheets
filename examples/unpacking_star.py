@@ -1,0 +1,5 @@
+first, *middle, last = range(5)
+print(first, middle, last)
+a, *rest = (9,)
+print(a, rest)
+print(type(middle).__name__)

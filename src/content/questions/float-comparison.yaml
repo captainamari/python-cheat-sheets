@@ -1,0 +1,60 @@
+topicId: float-comparison
+questions:
+- type: mcq
+  prompt: 比较零与很小的非零计算值时，通常需要特别设置什么？
+  choices:
+  - id: a
+    text: 只把相对容差设为零
+  - id: b
+    text: 把所有浮点数先转成整数
+  - id: c
+    text: 绝对容差 abs_tol
+  correct: c
+  explanation: 二进制浮点对许多十进制值只能保存近似值，多步计算会继续传播舍入误差。isclose 判断差值是否小于相对容差与绝对容差两者中较大的允许范围。相对容差随数值量级变化，绝对容差则提供固定的误差下限；比较零与很小的非零数时，仅相对容差通常不足。
+  id: float-comparison-mcq
+  topicId: float-comparison
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'import math
+
+    print(0.1 + 0.2 == 0.3)
+
+    print(math.isclose(0.1 + 0.2, 0.3))
+
+    print(math.isclose(0.0, 1e-10))
+
+    print(math.isclose(0.0, 1e-10, abs_tol=1e-9))
+
+    '
+  answer: 'False
+
+    True
+
+    False
+
+    True'
+  explanation: 我先根据单位和算法误差预算选择相对、绝对容差，再用 isclose 比较。接近零不能遗漏绝对容差，NaN 和无穷值另行处理。测试既验证可接受误差，也验证真正错误不会被容差吞掉。
+  id: float-comparison-output
+  topicId: float-comparison
+- type: debug
+  prompt: 测试想接受接近零的残差，为什么这个判断仍然失败？
+  code: 'import math
+
+    residual = 1e-12
+
+    assert math.isclose(residual, 0.0)'
+  rubric:
+  - 区分相对误差和绝对误差的量级作用
+  - 按单位设置 abs_tol，并测试超出预算及非有限输入
+  explanation: 近似相等不是适合哈希键的普通等价关系，可能不具有传递性。NaN 与任何值的普通相等比较都为假，isclose 也不会把两个 NaN 当作接近；非有限输入要单独定义处理策略。容差设得很大虽让测试通过，却可能放过数量级错误，应加入明显不相等的反例。
+  id: float-comparison-debug
+  topicId: float-comparison
+- type: oral
+  prompt: 为什么近似相等不适合直接作为自定义字典键的相等关系？
+  rubric:
+  - 区分相对误差和绝对误差的量级作用
+  - 按单位设置 abs_tol，并测试超出预算及非有限输入
+  - 我先根据单位和算法误差预算选择相对、绝对容差，再用 isclose 比较。接近零不能遗漏绝对容差，NaN 和无穷值另行处理。测试既验证可接受误差，也验证真正错误不会被容差吞掉。
+  explanation: 测量结果、科学计算和性能统计需要根据单位确定容差，例如秒与毫秒不能共用同一个绝对数值。金额通常应先采用明确的十进制或最小单位整数模型。测试算法时，可以对最终误差界或残差作断言，而不是随意增加小数位后再比较字符串，避免显示格式掩盖数值问题。
+  id: float-comparison-oral
+  topicId: float-comparison

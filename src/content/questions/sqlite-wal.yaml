@@ -1,0 +1,46 @@
+topicId: sqlite-wal
+questions:
+- type: mcq
+  prompt: WAL 模式下，一个已开始读取的事务如何看到后来提交的新行？
+  choices:
+  - id: a
+    text: 每次 SELECT 都必然看到新行
+  - id: b
+    text: 结束当前事务，再发起新查询
+  - id: c
+    text: 调用 Python 的 sleep 即可刷新快照
+  correct: b
+  explanation: 传统回滚日志先保存被修改页面的旧内容，WAL 则把提交写入预写日志。读事务记住开始读取时的边界，之后的提交不会改变它看到的快照。示例使用两个连接：读者先开始事务并查询，写者追加并提交，读者再次查询仍看到旧数量；读事务结束后，新查询才能看到追加数据。这是快照的可重复观察，不代表两个连接自动共享同一个事务。
+  id: sqlite-wal-mcq
+  topicId: sqlite-wal
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from pathlib import Path\nfrom tempfile import TemporaryDirectory\nimport sqlite3\nwith TemporaryDirectory() as root:\n    path = Path(root) / 'sample.db'\n    writer = sqlite3.connect(path, autocommit=True)\n    reader = sqlite3.connect(path, autocommit=True)\n    try:\n        print(writer.execute('PRAGMA journal_mode=WAL').fetchone()[0])\n        writer.execute('CREATE TABLE t(v INTEGER)')\n        writer.execute('INSERT INTO t VALUES (1)')\n        reader.execute('BEGIN')\n        print(reader.execute('SELECT COUNT(*) FROM t').fetchone()[0])\n        writer.execute('INSERT INTO t VALUES (2)')\n        print(reader.execute('SELECT COUNT(*) FROM t').fetchone()[0])\n        reader.execute('COMMIT')\n        print(reader.execute('SELECT COUNT(*) FROM t').fetchone()[0])\n    finally:\n        reader.close()\n        writer.close()\n"
+  answer: 'wal
+
+    1
+
+    1
+
+    2'
+  explanation: WAL 改善读写共存，读者保持快照，写者向日志提交，但写入仍串行。我会缩短事务、观察检查点和忙等待，并使用数据库支持的备份方式。示例通过两个连接稳定验证快照，不靠时间延迟猜测并发。
+  id: sqlite-wal-output
+  topicId: sqlite-wal
+- type: debug
+  prompt: 下面循环为什么可能一直看到旧数量，并阻碍 WAL 清理？
+  code: "reader.execute('BEGIN')\nwhile waiting:\n    count = reader.execute('SELECT COUNT(*) FROM events').fetchone()[0]"
+  rubric:
+  - 说明快照范围是读事务，轮询需结束旧事务
+  - 指出 WAL 仍只有一个写者，监控长读事务与检查点
+  explanation: WAL 不提供多个写者同时写入的能力，也不能消除 SQLITE_BUSY。读事务如果基于旧快照转为写入，可能需要重启整个事务，而不是盲目重试最后一条语句。WAL 依赖同机共享内存机制，不宜把数据库文件放在网络文件系统后就期待跨机器协作。备份也不能只在数据库活跃时复制主文件，遗漏仍在日志里的已提交数据。
+  id: sqlite-wal-debug
+  topicId: sqlite-wal
+- type: oral
+  prompt: WAL 改善了什么，又有哪些并发、备份和部署边界？
+  rubric:
+  - 说明快照范围是读事务，轮询需结束旧事务
+  - 指出 WAL 仍只有一个写者，监控长读事务与检查点
+  - WAL 改善读写共存，读者保持快照，写者向日志提交，但写入仍串行。我会缩短事务、观察检查点和忙等待，并使用数据库支持的备份方式。示例通过两个连接稳定验证快照，不靠时间延迟猜测并发。
+  explanation: '小型服务可以在初始化时设置并检查 journal_mode=WAL，保持写事务短，把耗时网络调用放到事务之外。需要监控 WAL 文件增长、事务持续时间和忙等待错误，必要时检查长时间未结束的读游标。示例使用临时目录里的文件数据库，因为普通 :memory: 数据库不演示磁盘 WAL。连接在 finally 中关闭，避免测试通过却残留文件句柄。'
+  id: sqlite-wal-oral
+  topicId: sqlite-wal

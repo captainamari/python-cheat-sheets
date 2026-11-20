@@ -1,0 +1,64 @@
+topicId: mock-reset
+questions:
+- type: mcq
+  prompt: 默认 reset_mock() 后 return_value 会怎样？
+  choices:
+  - id: a
+    text: 总是变成 None
+  - id: b
+    text: 总是变成空字符串
+  - id: c
+    text: 保留原配置
+  correct: c
+  explanation: Mock 同时包含行为配置与交互记录。call_count、call_args_list 等属于记录，return_value 与 side_effect 决定下一次调用会发生什么。reset_mock 默认重置前者，并递归处理子 Mock，但保留后者。因此一个已配置 side_effect=ValueError 的对象，清空调用次数后仍然会抛同样的异常。示例先返回固定结果，再重置并确认配置仍在，最后显式清除异常行为。
+  id: mock-reset-mcq
+  topicId: mock-reset
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: 'from unittest.mock import Mock
+
+    mock = Mock(return_value=7)
+
+    print(mock())
+
+    mock.reset_mock()
+
+    print(mock.call_count, mock.return_value)
+
+    mock.side_effect = ValueError(''planned'')
+
+    mock.reset_mock(side_effect=True)
+
+    print(mock(), mock.call_count)
+
+    '
+  answer: '7
+
+    0 7
+
+    7 1'
+  explanation: Mock 重置分成调用记录和行为配置。默认 reset_mock 只清记录，保留返回值和副作用；要清行为需显式参数，可迭代副作用还要重新初始化。场景差异大时我选择新建 Mock，减少隐藏共享状态。
+  id: mock-reset-output
+  topicId: mock-reset
+- type: debug
+  prompt: 下面第二阶段为何仍抛异常，怎样明确恢复所需行为？
+  code: 'service = Mock(side_effect=ValueError(''bad''))
+
+    service.reset_mock()
+
+    service()'
+  rubric:
+  - 区分调用记录与 return_value、side_effect，显式清除或新建 Mock
+  - 解释可迭代 side_effect 被消费后不会因默认重置而倒回
+  explanation: reset_mock(return_value=True) 会重新生成默认返回 Mock，而不是把返回值设为 None；side_effect=True 则清除副作用配置。自定义属性也不会因为默认重置而全部恢复。AsyncMock 还维护 await 次数与参数记录，需要按对应接口检查。不要把 reset_mock 当成任意测试状态的通用回滚函数，外部数据库、环境和单例缓存仍需独立清理。
+  id: mock-reset-debug
+  topicId: mock-reset
+- type: oral
+  prompt: 测试中复用 Mock 有哪些状态风险，reset_mock 的边界在哪里？
+  rubric:
+  - 区分调用记录与 return_value、side_effect，显式清除或新建 Mock
+  - 解释可迭代 side_effect 被消费后不会因默认重置而倒回
+  - Mock 重置分成调用记录和行为配置。默认 reset_mock 只清记录，保留返回值和副作用；要清行为需显式参数，可迭代副作用还要重新初始化。场景差异大时我选择新建 Mock，减少隐藏共享状态。
+  explanation: 测试多个阶段时，先记录并断言上一阶段，再决定是否重置观察记录。如果不同场景需要完全不同的依赖行为，创建新 Mock 通常更清楚。使用可迭代 side_effect 模拟连续响应时，迭代器会被消费，reset_mock 不会自动把它倒回开头；需要重新赋予序列或重新构造对象。这个区别常解释“单独跑通过，整批跑失败”的测试污染。
+  id: mock-reset-oral
+  topicId: mock-reset

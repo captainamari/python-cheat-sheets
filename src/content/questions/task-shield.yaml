@@ -1,0 +1,46 @@
+topicId: task-shield
+questions:
+- type: mcq
+  prompt: 外层等待 shield(task) 被取消时，哪项通常成立？
+  choices:
+  - id: a
+    text: 外层完全感知不到取消
+  - id: b
+    text: 外层收到取消，内部任务不因该路径自动取消
+  - id: c
+    text: 内部任务从此无法被任何方式取消
+  correct: b
+  explanation: await shield(task) 在外层取消时保护内部任务不因这条链路自动取消，外层 await 仍然以取消结束。它不是忽略所有取消的开关，也不是让任务脱离生命周期管理。内部任务自行失败或被直接 cancel，仍会正常体现对应结果，解释器退出时也不保证它无限继续运行。
+  id: task-shield-mcq
+  topicId: task-shield
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import asyncio\nasync def main():\n    release = asyncio.Event()\n    started = asyncio.Event()\n    async def work():\n        started.set()\n        await release.wait()\n        return 'done'\n    task = asyncio.create_task(work())\n    protected = asyncio.shield(task)\n    await started.wait()\n    protected.cancel()\n    try:\n        await protected\n    except asyncio.CancelledError:\n        print('outer cancelled')\n    print(task.cancelled())\n    release.set()\n    print(await task)\nasyncio.run(main())\n"
+  answer: 'outer cancelled
+
+    False
+
+    done'
+  explanation: shield 只隔离某条取消传播路径，外层仍被取消，内层仍需有人收尾。我会保存任务引用、明确完成预算和错误处理，并测试直接取消内部任务与外部取消两种路径，不把它当后台任务系统。
+  id: task-shield-output
+  topicId: task-shield
+- type: debug
+  prompt: 被保护任务失去追踪，为什么只加 shield 不够？
+  code: 'await asyncio.shield(asyncio.create_task(save()))
+
+    # 外层取消后没有保留任务引用或管理其最终异常'
+  rubric:
+  - 区分外层取消与内部任务取消传播路径
+  - 保留任务引用并设计有界收尾及最终异常处理
+  explanation: 吞掉外层 CancelledError 并继续无限等待，可能破坏调用方的停止预算。创建任务后不保存引用，也会让管理和排障更困难。shield 不能回滚已发生的副作用，也不能强制把耗时任务变成可控清理；需要先把关键操作设计成有界、可观测的生命周期片段。
+  id: task-shield-debug
+  topicId: task-shield
+- type: oral
+  prompt: 为什么 shield 无法保证进程退出后关键任务仍然完成？
+  rubric:
+  - 区分外层取消与内部任务取消传播路径
+  - 保留任务引用并设计有界收尾及最终异常处理
+  - shield 只隔离某条取消传播路径，外层仍被取消，内层仍需有人收尾。我会保存任务引用、明确完成预算和错误处理，并测试直接取消内部任务与外部取消两种路径，不把它当后台任务系统。
+  explanation: 某些已经开始的短暂清理或状态落盘需要独立完成时，可以明确持有任务引用，在上层取消后安排有界的等待与结果处理。若必须抵抗进程退出，应该使用持久化任务或事务机制，而不是只靠内存中的 shield。保护的范围、负责人和最终异常去向都应在接口中说明。
+  id: task-shield-oral
+  topicId: task-shield

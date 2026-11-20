@@ -1,0 +1,46 @@
+topicId: process-start-method
+questions:
+- type: mcq
+  prompt: 需要跨平台明确使用 spawn，推荐怎样创建上下文？
+  choices:
+  - id: a
+    text: multiprocessing.get_context('spawn')
+  - id: b
+    text: 假定所有 Linux 版本默认都是 fork
+  - id: c
+    text: 在每个库导入时强制修改全局启动方式
+  correct: a
+  explanation: spawn 启动新的解释器并准备运行环境，工作函数及参数需要满足相应传输与导入要求。fork 复制当前进程状态，但多线程父进程的锁与库状态会带来额外风险。forkserver 通过专用进程派生工作者。三者不是简单的性能开关，而是不同的初始化和资源继承模型。
+  id: process-start-method-mcq
+  topicId: process-start-method
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import multiprocessing as mp\nif __name__ == '__main__':\n    context = mp.get_context('spawn')\n    with context.Pool(1) as pool:\n        print(pool.map(abs, [-2, 3]))\n    print(context.get_start_method())\n"
+  answer: '[2, 3]
+
+    spawn'
+  explanation: 我按资源继承与部署平台选择启动方式，并在入口显式构造上下文。工作函数可导入，参数可传输，资源在正确进程内初始化。验证矩阵覆盖支持版本，不让默认值变更悄悄改变系统行为。
+  id: process-start-method-output
+  topicId: process-start-method
+- type: debug
+  prompt: 库在导入时强制设置启动方式，为什么可能破坏宿主程序？
+  code: 'import multiprocessing as mp
+
+    mp.set_start_method(''fork'')
+
+    # 这段代码位于一个被其他应用导入的通用库中'
+  rubric:
+  - 说明启动方式对继承状态和导入要求的影响
+  - 让应用选择或传入上下文，入口受保护并验证支持矩阵
+  explanation: 不同上下文创建的锁等对象不应被假定可以任意混用。Python 3.14 的默认行为已有变化，不能用某台 Linux 旧环境的 fork 默认推断所有支持版本。示例用标准库可导入的 abs 作为工作函数，并显式 spawn，避免依赖交互环境中局部函数恰好可访问的现象。
+  id: process-start-method-debug
+  topicId: process-start-method
+- type: oral
+  prompt: 为什么多进程启动方式不应该只根据一次本机性能测试决定？
+  rubric:
+  - 说明启动方式对继承状态和导入要求的影响
+  - 让应用选择或传入上下文，入口受保护并验证支持矩阵
+  - 我按资源继承与部署平台选择启动方式，并在入口显式构造上下文。工作函数可导入，参数可传输，资源在正确进程内初始化。验证矩阵覆盖支持版本，不让默认值变更悄悄改变系统行为。
+  explanation: 批量 CPU 计算可以用 multiprocessing.get_context 获取明确上下文，再创建进程池。入口应放在 __main__ 保护中，避免子进程加载主模块时再次创建工作池。库代码不宜随意全局 set_start_method，可能与宿主应用已经选择的机制冲突；传入上下文更便于组合与测试。
+  id: process-start-method-oral
+  topicId: process-start-method

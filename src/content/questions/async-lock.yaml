@@ -1,0 +1,44 @@
+topicId: async-lock
+questions:
+- type: mcq
+  prompt: 同一事件循环中的两个协程何时可能让读取后写回交错？
+  choices:
+  - id: a
+    text: 中间出现让出执行权的 await
+  - id: b
+    text: 只要只有一个线程就永远不可能
+  - id: c
+    text: 只有显式创建另一个进程时
+  correct: a
+  explanation: 两个任务都读取旧余额，分别 await 之后再写回，就可能丢失其中一个更新。事件循环通常在同一线程运行这些 Python 任务，并不等于一段包含 await 的函数原子执行。Lock 让遵守同一协议的协程互斥进入区域，async with 在退出和异常时释放锁。
+  id: async-lock-mcq
+  topicId: async-lock
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "import asyncio\nasync def main():\n    lock = asyncio.Lock()\n    state = {'count': 0}\n    async def increment():\n        async with lock:\n            old = state['count']\n            await asyncio.sleep(0)\n            state['count'] = old + 1\n    await asyncio.gather(increment(), increment())\n    print(state['count'])\nasyncio.run(main())\n"
+  answer: '2'
+  explanation: 我按 await 可能发生的交错分析竞态，而不是按线程数判断安全。锁保护完整不变量，持锁范围尽量短，跨进程状态交给合适的存储协议。测试使用可控调度制造竞争，并验证取消或异常后锁仍可用。
+  id: async-lock-output
+  topicId: async-lock
+- type: debug
+  prompt: 计数少了一次，应该怎样分析这个 await 边界？
+  code: 'old = state[''count'']
+
+    await fetch()
+
+    state[''count''] = old + 1'
+  rubric:
+  - 说明 await 边界上的共享状态交错
+  - 让读取和修改遵守完整同步协议，并验证异常与取消释放
+  explanation: asyncio.Lock 不可重入，同一任务持锁后再次等待同一把锁可能死锁。也不要在事件循环里用会阻塞线程的锁等待协程完成。取消会影响等待者与清理路径，因此手动 acquire 后必须确保释放；最简单可靠的形式通常是 async with，并对异常退出做回归测试。
+  id: async-lock-debug
+  topicId: async-lock
+- type: oral
+  prompt: 为什么不能把所有网络调用都随手放入一把全局协程锁里？
+  rubric:
+  - 说明 await 边界上的共享状态交错
+  - 让读取和修改遵守完整同步协议，并验证异常与取消释放
+  - 我按 await 可能发生的交错分析竞态，而不是按线程数判断安全。锁保护完整不变量，持锁范围尽量短，跨进程状态交给合适的存储协议。测试使用可控调度制造竞争，并验证取消或异常后锁仍可用。
+  explanation: 共享内存缓存的加载状态、请求合并表或计数更新可能需要协程锁。若耗时网络调用在锁内，其他任务会长时间排队；可以考虑更小粒度的键级锁或显式状态机，但释放锁前后必须重新检查相关状态。数据库中的跨进程一致性仍要靠数据库机制，进程内协程锁不能覆盖所有写者。
+  id: async-lock-oral
+  topicId: async-lock

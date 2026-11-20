@@ -1,0 +1,50 @@
+topicId: temp-files
+questions:
+- type: mcq
+  prompt: 临时目录上下文能自动关闭所有仍然打开的文件句柄吗？
+  choices:
+  - id: a
+    text: 不能，文件句柄也应显式管理
+  - id: b
+    text: 能，所有进程的句柄都会被关闭
+  - id: c
+    text: 只要路径叫 tmp 就能
+  correct: a
+  explanation: 临时资源不是简单选一个看起来不会重复的文件名。tempfile 负责安全创建和生命周期管理，TemporaryDirectory 在进入作用域时提供目录，退出时清理目录树。文件句柄仍需由 with open 管理；目录上下文并不自动替你关闭仍被其他对象持有的句柄。示例在临时目录内写入 UTF-8 文本，关闭后重新读取，最后验证目录已清理，而不输出随机目录名。
+  id: temp-files-mcq
+  topicId: temp-files
+- type: output
+  prompt: 请逐行推演下面代码，写出完整输出。
+  code: "from pathlib import Path\nfrom tempfile import TemporaryDirectory\nwith TemporaryDirectory() as root:\n    folder = Path(root)\n    target = folder / 'result.txt'\n    with target.open('w', encoding='utf-8') as file:\n        file.write('hello\\n')\n    print(target.read_text(encoding='utf-8').strip())\n    print(target.exists())\nprint(folder.exists())\n"
+  answer: 'hello
+
+    True
+
+    False'
+  explanation: 我用 TemporaryDirectory 为每个用例提供独立工作区，文件句柄通过上下文明确关闭，再做跨进程读取和清理。验证内容与生命周期，避免断言随机路径。涉及 NamedTemporaryFile 时单独考虑平台的共享和删除规则。
+  id: temp-files-output
+  topicId: temp-files
+- type: debug
+  prompt: 下面测试为什么可能读到不完整数据或在某些平台清理失败？
+  code: 'file = open(path, ''w'')
+
+    file.write(''result'')
+
+    run_reader_process(path)
+
+    os.remove(path)'
+  rubric:
+  - 使用独立临时目录并通过 with 关闭写句柄后再启动读者
+  - 覆盖内容和清理结果，说明跨平台重复打开与删除边界
+  explanation: NamedTemporaryFile 在 Windows 与 Unix 上的再次打开和删除行为有差异，还受 delete、delete_on_close 等参数影响；不能把某个平台上保持句柄打开也能重开的现象当作通用保证。清理失败应被看见而不是默认吞掉，特别是子进程尚未退出或文件被占用时。临时目录删除只说明生命周期结束，不等于对存储介质进行了安全擦除。
+  id: temp-files-debug
+  topicId: temp-files
+- type: oral
+  prompt: 如何设计可并行且跨平台的文件导出测试，不留下临时资源？
+  rubric:
+  - 使用独立临时目录并通过 with 关闭写句柄后再启动读者
+  - 覆盖内容和清理结果，说明跨平台重复打开与删除边界
+  - 我用 TemporaryDirectory 为每个用例提供独立工作区，文件句柄通过上下文明确关闭，再做跨进程读取和清理。验证内容与生命周期，避免断言随机路径。涉及 NamedTemporaryFile 时单独考虑平台的共享和删除规则。
+  explanation: 测试导出功能时，可以把临时目录路径注入被测函数，断言文件内容、编码和文件数量，再让上下文负责回收。这样测试不会污染项目目录，也不会依赖固定 /tmp 路径。多个用例各自创建目录比共享一个名称更适合并行执行。对于需要子进程读取的文件，要先刷新并关闭写句柄，再启动读取操作，避免缓冲区里的内容尚未可见。
+  id: temp-files-oral
+  topicId: temp-files
